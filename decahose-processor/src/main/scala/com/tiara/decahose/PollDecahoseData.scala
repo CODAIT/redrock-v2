@@ -75,7 +75,9 @@ class PollDecahoseData extends Actor with Logging{
       val connection = new URL(url).openConnection
       connection.setRequestProperty("Authorization", header)
       //writes on hadoop file system
-      fs.create(new Path(s"${Config.appConf.getString("paths.decahose-dir")}/$fileName")).write(IOUtils.toByteArray(connection.getInputStream))
+      val hdfs_file = fs.create(new Path(s"${Config.appConf.getString("paths.decahose-dir")}/$fileName"))
+      hdfs_file.write(IOUtils.toByteArray(connection.getInputStream))
+      hdfs_file.close()
       //To write on local file system
       //FileUtils.copyInputStreamToFile(connection.getInputStream, new File(s"${Config.appConf.getString("paths.decahose-dir")}/$fileName"))
       logInfo(s"File $fileName downloaded.")
