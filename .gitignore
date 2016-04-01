@@ -86,7 +86,7 @@ freq_may1_may19_june1_june11.npy
 nohup*.out
 
 #do not commit local conf
-conf/redrock-app.conf
+conf/tiara-app.conf
 
 #do not commit scripts updated
 dev/*.sh.updated
