@@ -17,10 +17,23 @@
 
 package com.tiara.decahose
 
+import akka.actor.ActorSystem
+import com.typesafe.config.{ConfigFactory, Config}
+import org.apache.spark.Logging
+
 /**
  * Created by barbaragomes on 4/1/16.
  */
-object Application extends App {
-  //TODO: Implement main class
+object Application extends App with Logging {
+
+  /* Sends message to decahose actor so it can start downloading files */
+  implicit val system = ActorSystem("Decahose-Producer")
+  val pollingDecahoseData = system.actorOf(PollDecahoseData.props)
+  pollingDecahoseData ! PollDecahoseData.StartDownloadingData
+
 }
 
+object Config {
+  // Global Application configuration
+  val appConf: Config = ConfigFactory.load("tiara-app").getConfig("tiara")
+}

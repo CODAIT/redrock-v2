@@ -74,16 +74,17 @@ object Dependency {
     val sprayV                      = "1.3.3"
     val typesafeConfig              = "1.3.0"
     val typesafePlayJSON            = "2.4.0"
+    val HttpClientVersion           = "4.2.2"
   }
 
   // Spark dependencies
   /* Do not remove "provided" - We do not need to include spark dependency 
   on the jar because the jar is gonna be executed by spark-submit*/
-  val sparkCore      = "org.apache.spark"  %% "spark-core"      % Version.Spark  //% "provided"
-  val sparkStreaming = "org.apache.spark"  %% "spark-streaming" % Version.Spark  //% "provided"
-  val sparkSQL       = "org.apache.spark"  %% "spark-sql"       % Version.Spark  //% "provided"
-  val sparkHive      = "org.apache.spark"  %% "spark-hive"      % Version.Spark  //% "provided"
-  val sparkMlLib     = "org.apache.spark"  %% "spark-mllib"     % Version.Spark  //% "provided"
+  val sparkCore      = "org.apache.spark"  %% "spark-core"      % Version.Spark  % "provided"
+  val sparkStreaming = "org.apache.spark"  %% "spark-streaming" % Version.Spark  % "provided"
+  val sparkSQL       = "org.apache.spark"  %% "spark-sql"       % Version.Spark  % "provided"
+  val sparkHive      = "org.apache.spark"  %% "spark-hive"      % Version.Spark  % "provided"
+  val sparkMlLib     = "org.apache.spark"  %% "spark-mllib"     % Version.Spark  % "provided"
 
   val sprayCan       = "io.spray"          %%  "spray-can"      % Version.sprayV
   val sprayRouting   = "io.spray"          %%  "spray-routing"  % Version.sprayV
@@ -97,12 +98,18 @@ object Dependency {
 
   //csv library
   val readCSV       = "com.databricks"    %% "spark-csv"  % "1.1.0"
+
+  //Download files from bluemix
+  val codec           = "commons-codec" % "commons-codec" % "1.6"
+  val apacheIO        = "commons-io" % "commons-io" % "2.4"
+  val apacheLang      = "org.apache.commons" % "commons-lang3" % "3.4"
 }
 
 object Dependencies {
   import Dependency._
 
-  val decahoseDependencies = Seq(sparkCore, sparkSQL, sparkHive, sparkStreaming, readCSV, configLib, akkaActor)
+  val decahoseDependencies = Seq(sparkCore, sparkSQL, sparkHive, sparkStreaming, readCSV, configLib, akkaActor,
+                                codec,apacheLang,apacheIO)
 
   val restAPIDependecies = Seq(playJson, sprayCan, sprayRouting, akkaActor, configLib)
 }

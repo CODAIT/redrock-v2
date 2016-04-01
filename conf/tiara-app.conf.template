@@ -1,3 +1,25 @@
 tiara {
 
+    hadoop-default-fs = "hdfs://localhost:9000"
+
+    paths{
+        decahose-dir = "/data/twitter/decahose/streaming"
+    }
+
+    poll-decahose-actor{
+        timezone = "UTC"
+
+        //Build file name on Bluemix server
+        fileNameFormatForURL = "yyyy/MM/dd/yyyy_MM_dd_HH_mm"
+        fileNameFormat = "yyyy_MM_dd_HH_mm"
+        fileNameExtensionJson = "activity.json.gz"
+        //files older than Jun 2015
+        fileNameExtensionGson = "activity.gson.gz"
+
+        //Bluemix Credentials
+        user = "*********"
+        password = "**********"
+        //Bluemix URL
+        hostname = "https://cde-archive.services.dal.bluemix.net/"
+    }
 }
