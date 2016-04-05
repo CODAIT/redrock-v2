@@ -1,25 +1,47 @@
 tiara {
 
+    app-name = "TIARA"
+
     hadoop-default-fs = "hdfs://localhost:9000"
+    date-time-format-to-display = "yyyy-MM-dd HH:mm:ss"
 
-    paths{
+    decahose-processor{
+
         decahose-dir = "/data/twitter/decahose/streaming"
-    }
+        writing-mode-string = "_WRITING_"
 
-    poll-decahose-actor{
-        timezone = "UTC"
+        poll-decahose-actor{
+            timezone = "PST"
 
-        //Build file name on Bluemix server
-        fileNameFormatForURL = "yyyy/MM/dd/yyyy_MM_dd_HH_mm"
-        fileNameFormat = "yyyy_MM_dd_HH_mm"
-        fileNameExtensionJson = "activity.json.gz"
-        //files older than Jun 2015
-        fileNameExtensionGson = "activity.gson.gz"
+            //Build file name on Bluemix server
+            fileNameFormatForURL = "yyyy/MM/dd/yyyy_MM_dd_HH_mm"
+            fileNameFormat = "yyyy_MM_dd_HH_mm"
+            fileNameExtensionJson = "activity.json.gz"
+            //files older than Jun 2015
+            fileNameExtensionGson = "activity.gson.gz"
 
-        //Bluemix Credentials
-        user = "*********"
-        password = "**********"
-        //Bluemix URL
-        hostname = "https://cde-archive.services.dal.bluemix.net/"
+            //Bluemix Credentials
+            user = "#########"
+            password = "###########"
+            //Bluemix URL
+            hostname = "https://cde-archive.services.dal.bluemix.net/"
+
+            // Time in seconds when the actor scheduled is going to start its process
+            startDownloadingAfter = 10
+            // scheduler time interval in seconds
+            timeInterval = 60
+        }
+
+        spark{
+            sql-shuffle-partitions = 5
+            UI-port = "4040"
+            executor-memory = "1g"
+            cores-max = 4
+            executor-cores = 1
+
+            //Batch time in seconds
+            streaming-batch-time = 60
+            delete-file-after-processed = true
+        }
     }
 }

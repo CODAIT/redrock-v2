@@ -31,9 +31,13 @@ object Application extends App with Logging {
   val pollingDecahoseData = system.actorOf(PollDecahoseData.props)
   pollingDecahoseData ! PollDecahoseData.StartDownloadingData
 
+  /* Start Spar Streaming to process downloaded data */
+  TweetProcessor.startProcessingStreamingData()
+
 }
 
 object Config {
   // Global Application configuration
   val appConf: Config = ConfigFactory.load("tiara-app").getConfig("tiara")
+  val processorConf = appConf.getConfig("decahose-processor")
 }

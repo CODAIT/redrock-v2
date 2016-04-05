@@ -22,22 +22,18 @@ import org.apache.hadoop.fs.Path;
  */
 class PollDecahoseData extends Actor with Logging{
 
-  val delay = Config.appConf.getInt("poll-decahose-actor.startDownloadingAfter").seconds
-  val interval = Config.appConf.getInt("poll-decahose-actor.timeInterval").seconds
+  val delay = Config.processorConf.getInt("poll-decahose-actor.startDownloadingAfter").seconds
+  val interval = Config.processorConf.getInt("poll-decahose-actor.timeInterval").seconds
 
   context.system.scheduler.schedule(delay, interval) {
     downloadNewFile()
   }
 
   //Set timezone
-  TimeZone.setDefault(TimeZone.getTimeZone(Config.appConf.getString("poll-decahose-actor.timezone")))
+  TimeZone.setDefault(TimeZone.getTimeZone(Config.processorConf.getString("poll-decahose-actor.timezone")))
 
-  val header = getHeader(Config.appConf.getString("poll-decahose-actor.user"), Config.appConf.getString("poll-decahose-actor.password"))
-  val hostname = Config.appConf.getString("poll-decahose-actor.hostname")
-  /* Changes default file system to HDFS */
-  val conf = new Configuration()
-  conf.set("fs.defaultFS", Config.appConf.getString("hadoop-default-fs"))
-  val fs= FileSystem.get(conf)
+  val header = getHeader(Config.processorConf.getString("poll-decahose-actor.user"), Config.processorConf.getString("poll-decahose-actor.password"))
+  val hostname = Config.processorConf.getString("poll-decahose-actor.hostname")
 
   // Bypassing handshacking validation. The certificate CN (Common Name) should be the same as host name in the URL.
   // For bluemix archive that is not true, the DN on the certificate is localhost. Talk to Viktor and seems like they will not
@@ -74,10 +70,13 @@ class PollDecahoseData extends Actor with Logging{
       logInfo(s"Downloading: $url")
       val connection = new URL(url).openConnection
       connection.setRequestProperty("Authorization", header)
-      //writes on hadoop file system
-      val hdfs_file = fs.create(new Path(s"${Config.appConf.getString("paths.decahose-dir")}/$fileName"))
+      //writes on hadoop file system - Same hadoop begin used by Spark
+      val hdfs_path = s"${Config.processorConf.getString("decahose-dir")}/${fileName}"
+      val hdfs_file = ApplicationContext.hadoopFS.create(new Path(s"${hdfs_path}${Config.processorConf.getString("writing-mode-string")}"))
       hdfs_file.write(IOUtils.toByteArray(connection.getInputStream))
       hdfs_file.close()
+      //Rename File To indicate that the file is ready to be processed by Spark
+      ApplicationContext.hadoopFS.rename(new Path(s"${hdfs_path}${Config.processorConf.getString("writing-mode-string")}"), new Path(s"${hdfs_path}"))
       //To write on local file system
       //FileUtils.copyInputStreamToFile(connection.getInputStream, new File(s"${Config.appConf.getString("paths.decahose-dir")}/$fileName"))
       logInfo(s"File $fileName downloaded.")
@@ -117,10 +116,10 @@ object PollDecahoseData {
 object StoreDateTimeAndConfig {
 
   // Datetime format for filename on bluemix
-  val URLFormat:SimpleDateFormat = new SimpleDateFormat(Config.appConf.getString("poll-decahose-actor.fileNameFormatForURL"))
-  val fileNameFormat:SimpleDateFormat = new SimpleDateFormat(Config.appConf.getString("poll-decahose-actor.fileNameFormat"))
-  val fileNameExtensionJson:String = Config.appConf.getString("poll-decahose-actor.fileNameExtensionJson")
-  val fileNameExtensionGson:String = Config.appConf.getString("poll-decahose-actor.fileNameExtensionGson")
+  val URLFormat:SimpleDateFormat = new SimpleDateFormat(Config.processorConf.getString("poll-decahose-actor.fileNameFormatForURL"))
+  val fileNameFormat:SimpleDateFormat = new SimpleDateFormat(Config.processorConf.getString("poll-decahose-actor.fileNameFormat"))
+  val fileNameExtensionJson:String = Config.processorConf.getString("poll-decahose-actor.fileNameExtensionJson")
+  val fileNameExtensionGson:String = Config.processorConf.getString("poll-decahose-actor.fileNameExtensionGson")
 
 
   var currDatetime: Date = {
