@@ -33,6 +33,6 @@ cd $TIARA_HOME/decahose-processor
 echo "============ Running Decahose Spark Streaming =============="
 #run program on cluster
 HOSTNAME="$(/bin/hostname -f)"
-nohup $SPARK_HOME/bin/spark-submit --driver-java-options "-Dlog4j.configuration=file://$TIARA_HOME/conf/log4j.properties" --driver-memory 1g --executor-cores 1 --num-executors 2 --master spark://$HOSTNAME:7077 --class com.tiara.decahose.Application $TIARA_HOME/decahose-processor/target/scala-2.10/tiara-decahose-processor.jar > $TIARA_HOME/decahose-processor/nohup-decahose.out&
+nohup $SPARK_HOME/bin/spark-submit --driver-java-options "-Dlog4j.configuration=file://$TIARA_HOME/conf/log4j.properties" --driver-memory 1g --num-executors 2 --master spark://$HOSTNAME:7077 --class com.tiara.decahose.Application $TIARA_HOME/decahose-processor/target/scala-2.10/tiara-decahose-processor.jar > $TIARA_HOME/decahose-processor/nohup-decahose.out&
 
 echo "======== Decahose started. Check nohup-decahose.out =============="
