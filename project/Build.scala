@@ -24,6 +24,7 @@ object BuildSettings {
   val ParentProject = "tiara-parent"
   val RestAPIName = "tiara-restapi"
   val DecahoseName = "tiara-decahose-processor"
+  val Word2VecName = "tiara-word2vec"
 
   val Version = "1.0"
   val ScalaVersion = "2.10.4"
@@ -52,6 +53,15 @@ object BuildSettings {
     scalaVersion  := ScalaVersion,
     organization  := "com.ibm.sparktc.tiara",
     description   := "TIARA decahose processor application",
+    scalacOptions := Seq("-deprecation", "-unchecked", "-encoding", "utf8", "-Xlint")
+  )
+
+  lazy val word2VecSettings = Defaults.coreDefaultSettings ++ Seq (
+    name          := Word2VecName,
+    version       := Version,
+    scalaVersion  := ScalaVersion,
+    organization  := "com.ibm.sparktc.tiara",
+    description   := "TIARA word2vec model generation application",
     scalacOptions := Seq("-deprecation", "-unchecked", "-encoding", "utf8", "-Xlint")
   )
 }
@@ -112,6 +122,8 @@ object Dependencies {
                                 codec,apacheLang,apacheIO)
 
   val restAPIDependecies = Seq(playJson, sprayCan, sprayRouting, akkaActor, configLib)
+
+  val word2VecDependencies = Seq(sparkCore, sparkSQL, sparkHive, sparkMlLib, akkaActor)
 }
 
 object TiaraBuild extends Build{
@@ -143,7 +155,9 @@ object TiaraBuild extends Build{
       fork := true,
       connectInput in run := true,
       scalastyleConfig in Compile :=  file(".") / "project" / "scalastyle-config.xml",
-      assemblyJarName in assembly := "tiara-restapi.jar"
+      assemblyJarName in assembly := "tiara-restapi.jar",
+      // Manual dependency
+      unmanagedBase := file(".") / "lib"
     ))
 
   lazy val decahoseProcessor = Project(
@@ -160,6 +174,27 @@ object TiaraBuild extends Build{
       fork := true,
       connectInput in run := true,
       scalastyleConfig in Compile :=  file(".") / "project" / "scalastyle-config.xml",
-      assemblyJarName in assembly := "tiara-decahose-processor.jar"
+      assemblyJarName in assembly := "tiara-decahose-processor.jar",
+      // Manual dependency
+      unmanagedBase := file(".") / "lib"
+    ))
+
+  lazy val word2vecModelGeneration = Project(
+    id = "tiara-word2vec",
+    base = file("./word2vec-models"),
+    settings = word2VecSettings ++ Seq(
+      maxErrors := 5,
+      ivyScala := ivyScala.value map { _.copy(overrideScalaVersion = true) },
+      triggeredMessage := Watched.clearWhenTriggered,
+      resolvers := allResolvers,
+      libraryDependencies ++= Dependencies.word2VecDependencies,
+      unmanagedResourceDirectories in Compile += file(".") / "conf",
+      mainClass := Some("com.tiara.word2vec.Application"),
+      fork := true,
+      connectInput in run := true,
+      scalastyleConfig in Compile :=  file(".") / "project" / "scalastyle-config.xml",
+      assemblyJarName in assembly := "tiara-word2vec-model.jar",
+      // Manual dependency
+      unmanagedBase := file(".") / "lib"
     ))
 }

@@ -44,4 +44,33 @@ tiara {
             delete-file-after-processed = true
         }
     }
+
+    word-2-vec{
+        path-to-daily-tweets = ${tiara.hadoop-default-fs}"/daily/en"
+        path-to-daily-models = ${tiara.hadoop-default-fs}"/models/daily"
+        col-name-tweet-txt = "body"
+        date-format = "yyyy_MM_dd"
+
+        folder-name-model = "word2VecModel"
+        folder-name-word-count = "frequencyAnalysis"
+        token-file-name = "newModel.txt"
+
+        start-scheduler-after = 0
+        generate-model-timeinterval = 400
+
+        parameters{
+            partition-number = 6
+            iterations-number = 6
+            min-word-count = 10
+            vector-size = 100
+        }
+
+        spark{
+            sql-shuffle-partitions = 5
+            UI-port = "4041"
+            executor-memory = "1g"
+            cores-max = 4
+            executor-cores = 1
+        }
+    }
 }
