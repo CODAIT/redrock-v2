@@ -15,18 +15,5 @@
 # limitations under the License.
 #
 
-# using environment variable to find tiara home directory
-if [ -z "$TIARA_HOME" ]; then echo "TIARA_HOME is NOT set"; else echo "TIARA_HOME defined as '$TIARA_HOME'"; fi
+ps aux |grep "tiara-word2vec-model.jar"      | tr -s " " |  cut -d " " -f 2 | xargs kill >/dev/null 2>&1
 
-
-echo "========= Stopping Word2Vec model Generation =========="
-
-$TIARA_HOME/bin/stop-word2vec.sh
-
-echo "========= Stopping Decahose =========="
-
-$TIARA_HOME/bin/stop-decahose.sh
-
-echo "========= Stopping REST API =========="
-
-$TIARA_HOME/bin/stop-restapi.sh
