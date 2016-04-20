@@ -103,13 +103,15 @@ object Dependency {
   val codec           = "commons-codec" % "commons-codec" % "1.6"
   val apacheIO        = "commons-io" % "commons-io" % "2.4"
   val apacheLang      = "org.apache.commons" % "commons-lang3" % "3.4"
+
+  val jedis           = "redis.clients" % "jedis" % "2.8.0"
 }
 
 object Dependencies {
   import Dependency._
 
   val decahoseDependencies = Seq(sparkCore, sparkSQL, sparkHive, sparkStreaming, readCSV, configLib, akkaActor,
-                                codec,apacheLang,apacheIO)
+                                codec,apacheLang,apacheIO,jedis)
 
   val restAPIDependecies = Seq(playJson, sprayCan, sprayRouting, akkaActor, configLib)
 }
