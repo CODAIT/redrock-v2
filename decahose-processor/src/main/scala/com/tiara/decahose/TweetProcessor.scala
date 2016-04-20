@@ -87,6 +87,8 @@ object TweetProcessor extends Logging{
     (it: WrappedArray[WrappedArray[String]]) => it.filter(_ != null).flatten.distinct
   )
 
+  //TODO: find a way to close pools/connections when the Spark job gets killed.
+  // right now the TCP conns remains open in the Executor JVM
   val pool: JedisPool = new JedisPool(new JedisPoolConfig(), Config.processorConf.getString("redis-server"))
   val MAX_REDIS_PIPELINE = 10000
 
