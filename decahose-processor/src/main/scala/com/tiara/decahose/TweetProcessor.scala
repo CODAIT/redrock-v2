@@ -29,6 +29,21 @@ object TweetProcessor extends Logging{
   val enDir = Config.processorConf.getString("daily-en-tweets-dir")
   val debugDir = Config.processorConf.getString("debug-dir")
 
+  // field names we generate in sql stmts
+  val COL_POSTED_DATE = "postedDate"
+  val COL_POSTED_HOUR = "postedHour"
+  val COL_TWITTER_ENTITY = "ES"
+  val COL_TWITTER_AUTHOR = "AU"
+  val COL_TOKEN = "tok"
+  val COL_TOKEN_1 = "tok1"
+  val COL_TOKEN_2 = "tok2"
+  val COL_TOKEN_SET = "toks"
+  val COL_PAIR = "pair"
+  val COL_COUNT = "count"
+
+  // SQL strings
+  val SQL_EN_FILTER = "twitter_lang = 'en'"
+
   // stop words, from the assembly jar, packaged from conf dir
   val stopWords: Set[String] = scala.io.Source.fromInputStream(
     getClass.getResourceAsStream("/stop-words.1")
@@ -92,16 +107,16 @@ object TweetProcessor extends Logging{
   val pool: JedisPool = new JedisPool(new JedisPoolConfig(), Config.processorConf.getString("redis-server"))
   val MAX_REDIS_PIPELINE = 10000
 
-  def groupedBulkUpdatePairs (rows: Iterator[Row]): Unit = {
+  def groupedBulkUpdatePairs (tsFieldName: String, rows: Iterator[Row]): Unit = {
     val jedis = pool.getResource
     var pipe = jedis.pipelined()
     var i: Int = 0
     rows.foreach(
       (row: Row) => {
-        val date: String = row.getAs[String]("postedDate")
-        val tok1: String = row.getAs[String]("tok1")
-        val tok2: String = row.getAs[String]("tok2")
-        val count = row.getAs[Long]("count")
+        val date: String = row.getAs[String](tsFieldName)
+        val tok1: String = row.getAs[String](COL_TOKEN_1)
+        val tok2: String = row.getAs[String](COL_TOKEN_2)
+        val count = row.getAs[Long](COL_COUNT)
         pipe.zincrby(date + ":" + tok1, count, tok2)
         pipe.zincrby(date + ":" + tok2, count, tok1)
         pipe.expire(date + ":" + tok1, 86400*7)
@@ -119,18 +134,19 @@ object TweetProcessor extends Logging{
     jedis.close()
   }
 
-  def groupedBulkUpdateCounters (fieldName: String, rows: Iterator[Row]): Unit = {
+  def groupedBulkUpdateCounters (tsFieldName: String, tokenFieldName: String, rows: Iterator[Row]): Unit = {
     val jedis = pool.getResource
     var pipe = jedis.pipelined()
     var i: Int = 0
     rows.foreach(
       (row: Row) => {
-        val date: String = row.getAs[String]("postedDate")
-        val tok: String = row.getAs[String](fieldName)
+        val date: String = row.getAs[String](tsFieldName)
+        val tok: String = row.getAs[String](tokenFieldName)
         val tok0 = tok.substring(0,1)
-        val count = row.getAs[Long]("count")
-        var typeTag: String = fieldName
-        if (fieldName == "ES") {
+        val count = row.getAs[Long](COL_COUNT)
+        var typeTag: String = tokenFieldName
+        if (tokenFieldName == COL_TWITTER_ENTITY) {
+          // 3 types of twitter "entity": hashtag, user mention, and plain string
           if (tok0 == "#" || tok0 == "@") {typeTag += tok0} else {typeTag += "S"}
         }
         pipe.zincrby(date + ":" + typeTag, count, tok)
@@ -205,7 +221,7 @@ object TweetProcessor extends Logging{
       // Filter by English tweets
       // Save filtered DF as parquet to HDFS
       if (true) {
-        val enDF0 = tweetsDF.filter("twitter_lang = 'en'").repartition(90)
+        val enDF0 = tweetsDF.filter(SQL_EN_FILTER).repartition(90)
         enDF0.write.format("parquet").save(enDir + "/" + timeWindow)
       }
 
@@ -218,42 +234,42 @@ object TweetProcessor extends Logging{
       val dateToksDF = enDF
         .filter(not(col("body").rlike(excludeRegex)))
         .select(
-          postedDate(col("postedTime")).as("postedDate"),
-          col("actor.preferredUsername").as("AU"),
+          postedDate(col("postedTime")).as(COL_POSTED_DATE),
+          col("actor.preferredUsername").as(COL_TWITTER_AUTHOR),
           flattenDistinct(array(
             lowerTwokensNoHttpNoStop(col("body")),
             lowerTwokensNoHttpNoStop(col("object.body"))
-          )).as("toks"))
+          )).as(COL_TOKEN_SET))
         .repartition(90)
         .persist(StorageLevel.MEMORY_AND_DISK_SER)
 
       // counter update of hashtags and user mentions and other random strings
       if (true) {
         val gDF = dateToksDF.select(
-          col("postedDate"),
-          explode(col("toks")).as("ES")
-        ).groupBy("postedDate", "ES").count.repartition(70)
+          col(COL_POSTED_DATE),
+          explode(col(COL_TOKEN_SET)).as(COL_TWITTER_ENTITY)
+        ).groupBy(COL_POSTED_DATE, COL_TWITTER_ENTITY).count.repartition(70)
 
         gDF.foreachPartition(
-          (rows: Iterator[Row]) => groupedBulkUpdateCounters("ES", rows)
+          (rows: Iterator[Row]) => groupedBulkUpdateCounters(COL_POSTED_DATE, COL_TWITTER_ENTITY, rows)
         )
       }
 
       // counter update of author posts
       if (true) {
         val gDF = dateToksDF.select(
-          col("postedDate"),
-          col("AU")
-        ).groupBy("postedDate", "AU").count.repartition(70)
+          col(COL_POSTED_DATE),
+          col(COL_TWITTER_AUTHOR)
+        ).groupBy(COL_POSTED_DATE, COL_TWITTER_AUTHOR).count.repartition(70)
 
         gDF.foreachPartition(
-          (rows: Iterator[Row]) => groupedBulkUpdateCounters("AU", rows)
+          (rows: Iterator[Row]) => groupedBulkUpdateCounters(COL_POSTED_DATE, COL_TWITTER_AUTHOR, rows)
         )
       }
 
       // counter update of all pairs
       if (true) {
-        val gDF = dateToksDF.explode("toks", "pair") {
+        val gDF = dateToksDF.explode(COL_TOKEN_SET, COL_PAIR) {
           (toks: WrappedArray[String]) =>
             toks.toSeq.distinct
               // C(n,k) where k=2
@@ -262,12 +278,12 @@ object TweetProcessor extends Logging{
               .map(_.sorted)
               .map((x: Seq[String]) => Tuple2(x(0), x(1)))
         }
-          .select(col("postedDate"), col("pair._1").as("tok1"), col("pair._2").as("tok2"))
-          .groupBy("postedDate", "tok1", "tok2").count
+          .select(col(COL_POSTED_DATE), col(COL_PAIR + "._1").as(COL_TOKEN_1), col(COL_PAIR + "._2").as(COL_TOKEN_2))
+          .groupBy(COL_POSTED_DATE, COL_TOKEN_1, COL_TOKEN_2).count
           .repartition(90)
 
         gDF.foreachPartition(
-          (rows: Iterator[Row]) => groupedBulkUpdatePairs(rows)
+          (rows: Iterator[Row]) => groupedBulkUpdatePairs(COL_POSTED_DATE, rows)
         )
       }
 
@@ -277,15 +293,15 @@ object TweetProcessor extends Logging{
         val hourToksDF = enDF
           .filter(not(col("body").rlike(excludeRegex)))
           .select(
-            postedHour(col("postedTime")).as("postedHour"),
+            postedHour(col("postedTime")).as(COL_POSTED_HOUR),
             flattenDistinct(array(
               lowerTwokensNoHttpNoStop(col("body")),
               lowerTwokensNoHttpNoStop(col("object.body"))
-            )).as("toks"))
+            )).as(COL_TOKEN_SET))
 
         if (false) {
           hourToksDF
-            .explode("toks", "pair") {
+            .explode(COL_TOKEN_SET, COL_PAIR) {
               (toks: WrappedArray[String]) =>
                 toks.toSeq.distinct
                   // C(n,k) where k=2
@@ -294,16 +310,16 @@ object TweetProcessor extends Logging{
                   .map(_.sorted)
                   .map((x: Seq[String]) => Tuple2(x(0), x(1)))
             }
-            .select(col("postedHour"), col("pair"))
-            .groupBy("postedHour", "pair").count
-            .orderBy(col("count").desc)
+            .select(col(COL_POSTED_HOUR), col(COL_PAIR))
+            .groupBy(COL_POSTED_HOUR, COL_PAIR).count
+            .orderBy(col(COL_COUNT).desc)
             .write.format("json")
             .save(debugDir + "/hour-rel-counts/" + timeWindow)
         }
 
         if (false) {
           hourToksDF
-            .explode("toks", "pair") {
+            .explode(COL_TOKEN_SET, COL_PAIR) {
               (toks: WrappedArray[String]) =>
                 toks.toSeq.distinct
                   // C(n,k) where k=2
@@ -312,18 +328,18 @@ object TweetProcessor extends Logging{
                   .map(_.sorted)
                   .map((x: Seq[String]) => Tuple2(x(0), x(1)))
             }
-            .select(col("pair"))
-            .groupBy("pair").count
-            .orderBy(col("count").desc)
+            .select(col(COL_PAIR))
+            .groupBy(COL_PAIR).count
+            .orderBy(col(COL_COUNT).desc)
             .write.format("json")
             .save(debugDir + "/tok-rel-counts/" + timeWindow)
         }
 
         if (false) {
           hourToksDF
-            .select(explode(col("toks")).as("tok"))
-            .groupBy("tok").count
-            .orderBy(col("count").desc)
+            .select(explode(col(COL_TOKEN_SET)).as(COL_TOKEN))
+            .groupBy(COL_TOKEN).count
+            .orderBy(col(COL_COUNT).desc)
             .write.format("json")
             .save(debugDir + "/tok-counts/" + timeWindow)
         }
@@ -343,7 +359,7 @@ object TweetProcessor extends Logging{
             mentionToText(col("mentions")),
             mentionToText(col("omentions")))
           ).as("flat_tokens"))
-            .explode("flat_tokens", "pair") {
+            .explode("flat_tokens", COL_PAIR) {
               (toks: WrappedArray[String]) =>
                 toks.toSeq.distinct
                   // C(n,k) where k=2
@@ -353,7 +369,7 @@ object TweetProcessor extends Logging{
                   .map((x: Seq[String]) => Tuple2(x(0), x(1)))
             }.select("pair._1", "pair._2")
             .groupBy("_1", "_2").count
-            .orderBy(col("count").desc)
+            .orderBy(col(COL_COUNT).desc)
             .write.format("json")
             .save(debugDir + "/rel-counts/" + timeWindow)
         }
