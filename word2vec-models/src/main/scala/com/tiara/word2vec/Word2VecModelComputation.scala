@@ -67,7 +67,7 @@ class Word2VecModelComputation(val date:String) extends Logging{
     logInfo("Computing Frequency analysis")
     val freq = (filtered.rdd.flatMap(line => line.getSeq[String](0).map((_,1)))
                .reduceByKey((a, b) => a + b)
-                .filter(_._2 >= Config.word2vecConf.getInt("parameters.min-word-count"))).toDF
+                .filter(_._2 >= Config.word2vecConf.getInt("parameters.min-word-count"))).toDF("word","freq")
     logInfo(s"Frequency Analysis ended. Total words: ${freq.count()}")
     freq.write.parquet(s"$folderPath/${Config.word2vecConf.getString("folder-name-word-count")}")
     logInfo(s"Frequency Analysis Stored")
