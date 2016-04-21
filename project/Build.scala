@@ -98,7 +98,8 @@ object Dependency {
 
   val sprayCan       = "io.spray"          %%  "spray-can"      % Version.sprayV
   val sprayRouting   = "io.spray"          %%  "spray-routing"  % Version.sprayV
-  val akkaActor      = "com.typesafe.akka" %%  "akka-actor"     % Version.akkaV 
+  val akkaActor      = "com.typesafe.akka" %%  "akka-actor"     % Version.akkaV
+  val spec           = "org.specs2"        %%  "specs2-core"     % "2.3.7" % "test"
   
   //Config library
   val configLib      = "com.typesafe" % "config" % Version.typesafeConfig
@@ -121,7 +122,8 @@ object Dependencies {
   val decahoseDependencies = Seq(sparkCore, sparkSQL, sparkHive, sparkStreaming, readCSV, configLib, akkaActor,
                                 codec,apacheLang,apacheIO)
 
-  val restAPIDependecies = Seq(playJson, sprayCan, sprayRouting, akkaActor, configLib)
+  val restAPIDependecies = Seq(sparkCore, sparkSQL, sparkHive, sparkMlLib, playJson,
+    sprayCan, sprayRouting, akkaActor, configLib,spec)
 
   val word2VecDependencies = Seq(sparkCore, sparkSQL, sparkHive, sparkMlLib, akkaActor)
 }
@@ -155,9 +157,7 @@ object TiaraBuild extends Build{
       fork := true,
       connectInput in run := true,
       scalastyleConfig in Compile :=  file(".") / "project" / "scalastyle-config.xml",
-      assemblyJarName in assembly := "tiara-restapi.jar",
-      // Manual dependency
-      unmanagedBase := file(".") / "lib"
+      assemblyJarName in assembly := "tiara-restapi.jar"
     ))
 
   lazy val decahoseProcessor = Project(

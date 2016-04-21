@@ -73,4 +73,27 @@ tiara {
             executor-cores = 1
         }
     }
+
+    rest-api{
+
+        bind-port = 16666
+        bind-ip = "0.0.0.0"
+
+        path-to-daily-models = ${tiara.word-2-vec.path-to-daily-models}
+        token-file-name = ${tiara.word-2-vec.token-file-name}
+        folder-name-model = ${tiara.word-2-vec.folder-name-model}
+        folder-name-word-count = ${tiara.word-2-vec.folder-name-word-count}
+
+        start-scheduler-after = 0
+        // Every 10min
+        check-for-new-model-interval = 600
+
+        spark{
+            sql-shuffle-partitions = 5
+            UI-port = "4042"
+            executor-memory = "1g"
+            cores-max = 4
+            executor-cores = 1
+        }
+    }
 }

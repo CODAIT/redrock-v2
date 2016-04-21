@@ -17,9 +17,37 @@
 
 package com.tiara.restapi
 
+import com.typesafe.config.{ConfigFactory, Config}
+import akka.actor.{ActorSystem, Props}
+import akka.io.IO
+import org.apache.spark.Logging
+import spray.can.Http
+import akka.pattern.ask
+import akka.util.Timeout
+import scala.concurrent.duration._
+
 /**
  * Created by barbaragomes on 4/1/16.
  */
-object Application extends App {
-    //TODO: Implement main class
+object Application extends App with Logging {
+
+  implicit val system = ActorSystem("restapi-actor")
+  val monitorModels = system.actorOf(UpdateWord2VecModel.props)
+  monitorModels ! UpdateWord2VecModel.StartMonitoringWord2VecModels
+
+  val service = system.actorOf(Props[TiaraServiceActor], "tiara-restapi")
+
+  implicit val timeout = Timeout(800.seconds)
+  val bindIP = Config.restapi.getString("bind-ip")
+  val bindPort = Config.restapi.getInt("bind-port")
+  IO(Http) ? Http.Bind(service, interface = bindIP, port = bindPort)
+  logInfo(s"REST API started. Binding IP: $bindIP --> Binding Port: $bindPort")
+
 }
+
+object Config {
+  // Global Application configuration
+  val appConf: Config = ConfigFactory.load("tiara-app").getConfig("tiara")
+  val restapi = appConf.getConfig("rest-api")
+}
+
