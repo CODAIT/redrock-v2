@@ -1,9 +1,11 @@
 package com.tiara.decahose
 
+import org.apache.spark.Logging
+
 /**
   * Created by zchen on 4/21/16.
   */
-class BatchJobServer extends Runnable {
+class BatchJobServer extends Runnable with Logging {
 
   def run() = {
     import java.net._
@@ -25,6 +27,7 @@ class BatchJobServer extends Runnable {
 
   def processLine(line: String) = {
     val paths: Array[String] = line.split(" ")
+    logInfo(s"batch processing paths: ${line}")
     val df = ApplicationContext.sqlContext.read.schema(ApplicationContext.schema).json(paths:_*)
     TweetProcessor.processedTweetsDataFrame(df, "")
   }
