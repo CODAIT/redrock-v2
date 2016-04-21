@@ -26,6 +26,7 @@ object TweetProcessor extends Logging{
 
   // where to save the english tweets in parquet format
   val enDir = Config.processorConf.getString("daily-en-tweets-dir")
+  val toksDir = Config.processorConf.getString("tokens-dir")
   val debugDir = Config.processorConf.getString("debug-dir")
 
 
@@ -77,21 +78,24 @@ object TweetProcessor extends Logging{
       //TODO: in case of multiple files, use the file size information
       //TODO: to estimate/inform how long the subsequent processing will take
 
-//  Aborted attempt to find out the time window of the tweets and use it to name the parquet dir
-//  This is bad idea as we go through the json data twice, wasting CPU. Comment out for now.
-//      val timeWindow = tweetsDF.select(max("postedTime"), min("postedTime")).first.toString()
-//        .replaceAll(".000Z", "").replaceAll("[:-]", "").replaceAll("[\\[\\]]", "").replaceAll(",", "-")
-//      logInfo(s"============  ${timeWindow} ${tweetsDF.count()}  ${timeWindow}")
-
       // Filter by English tweets
-      // Save filtered DF as parquet to HDFS
-      if (true) {
-        val enDF0 = tweetsDF.filter(SQL_EN_FILTER).repartition(90)
-        enDF0.write.format("parquet").save(enDir + "/" + timeWindow)
-      }
+      // Save filtered DF as parquet to HDFS, partitioned by date
+      val enDF = tweetsDF
+        .filter(SQL_EN_FILTER)
+        .withColumn(COL_POSTED_DATE, postedDate(col("postedTime")))
+
+      enDF.repartition(30)
+      enDF.persist(StorageLevel.MEMORY_AND_DISK_SER)
+
+      val dfWriter = enDF
+        .write
+        .partitionBy(COL_POSTED_DATE)
+        .mode(org.apache.spark.sql.SaveMode.Append)
+
+      dfWriter.format("parquet").save(enDir)
 
       // read it back from parquet files, this is faster
-      val enDF = tweetsDF.sqlContext.read.parquet(enDir + "/" + timeWindow)
+//      val enDF = tweetsDF.sqlContext.read.parquet(enDir + "/" + timeWindow)
 //      val enDF = tweetsDF.sqlContext.read.parquet("hdfs://spark-dense-01:8020/daily/en/2016_03_01")
       //TODO: and Add Sentiment field
 
@@ -99,14 +103,23 @@ object TweetProcessor extends Logging{
       val dateToksDF = enDF
         .filter(not(col("body").rlike(excludeRegex)))
         .select(
-          postedDate(col("postedTime")).as(COL_POSTED_DATE),
+          col(COL_POSTED_DATE),
           col("actor.preferredUsername").as(COL_TWITTER_AUTHOR),
           flattenDistinct(array(
             lowerTwokensNoHttpNoStop(col("body")),
             lowerTwokensNoHttpNoStop(col("object.body"))
           )).as(COL_TOKEN_SET))
         .repartition(90)
-        .persist(StorageLevel.MEMORY_AND_DISK_SER)
+
+      dateToksDF.persist(StorageLevel.MEMORY_AND_DISK_SER)
+      enDF.unpersist(false)
+
+      val dfwr = dateToksDF
+        .write
+        .partitionBy(COL_POSTED_DATE)
+        .mode(org.apache.spark.sql.SaveMode.Append)
+
+      dfwr.format("parquet").save(toksDir)
 
       // counter update of hashtags and user mentions and other random strings
       if (true) {
