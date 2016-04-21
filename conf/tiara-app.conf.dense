@@ -9,7 +9,10 @@ tiara {
 
         decahose-dir = "hdfs://spark-dense-01:8020/zchen_test/decahose/streaming"
 	daily-en-tweets-dir = "hdfs://spark-dense-01:8020/zchen_test/en"
+	tokens-dir = "hdfs://spark-dense-01:8020/zchen_test/toks"
 	debug-dir = "hdfs://spark-dense-01:8020/zchen_test/debug"
+
+	update-redis-counters = "false"
 	redis-server = "spark11"
         writing-mode-string = "_COPYING_"
 	tweet-schema-json = "decahose-large.json"

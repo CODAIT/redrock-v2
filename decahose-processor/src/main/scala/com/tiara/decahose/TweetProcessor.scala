@@ -28,6 +28,7 @@ object TweetProcessor extends Logging{
   val enDir = Config.processorConf.getString("daily-en-tweets-dir")
   val toksDir = Config.processorConf.getString("tokens-dir")
   val debugDir = Config.processorConf.getString("debug-dir")
+  val shouldUpdateCounters: Boolean = Config.processorConf.getString("update-redis-counters").toBoolean
 
 
   def startProcessingStreamingData(): Unit = {
@@ -121,48 +122,50 @@ object TweetProcessor extends Logging{
 
       dfwr.format("parquet").save(toksDir)
 
-      // counter update of hashtags and user mentions and other random strings
-      if (true) {
-        val gDF = dateToksDF.select(
-          col(COL_POSTED_DATE),
-          explode(col(COL_TOKEN_SET)).as(COL_TWITTER_ENTITY)
-        ).groupBy(COL_POSTED_DATE, COL_TWITTER_ENTITY).count.repartition(70)
+      if (shouldUpdateCounters) {
+        // counter update of hashtags and user mentions and other random strings
+        if (true) {
+          val gDF = dateToksDF.select(
+            col(COL_POSTED_DATE),
+            explode(col(COL_TOKEN_SET)).as(COL_TWITTER_ENTITY)
+          ).groupBy(COL_POSTED_DATE, COL_TWITTER_ENTITY).count.repartition(70)
 
-        gDF.foreachPartition(
-          (rows: Iterator[Row]) => groupedBulkUpdateCounters(COL_POSTED_DATE, COL_TWITTER_ENTITY, rows)
-        )
-      }
-
-      // counter update of author posts
-      if (true) {
-        val gDF = dateToksDF.select(
-          col(COL_POSTED_DATE),
-          col(COL_TWITTER_AUTHOR)
-        ).groupBy(COL_POSTED_DATE, COL_TWITTER_AUTHOR).count.repartition(70)
-
-        gDF.foreachPartition(
-          (rows: Iterator[Row]) => groupedBulkUpdateCounters(COL_POSTED_DATE, COL_TWITTER_AUTHOR, rows)
-        )
-      }
-
-      // counter update of all pairs
-      if (true) {
-        val gDF = dateToksDF.explode(COL_TOKEN_SET, COL_PAIR) {
-          (toks: WrappedArray[String]) =>
-            toks.toSeq.distinct
-              // C(n,k) where k=2
-              .combinations(2).toList
-              // sort the 2-tuple so we can compare the pairs in subsequent groupBy
-              .map(_.sorted)
-              .map((x: Seq[String]) => Tuple2(x(0), x(1)))
+          gDF.foreachPartition(
+            (rows: Iterator[Row]) => groupedBulkUpdateCounters(COL_POSTED_DATE, COL_TWITTER_ENTITY, rows)
+          )
         }
-          .select(col(COL_POSTED_DATE), col(COL_PAIR + "._1").as(COL_TOKEN_1), col(COL_PAIR + "._2").as(COL_TOKEN_2))
-          .groupBy(COL_POSTED_DATE, COL_TOKEN_1, COL_TOKEN_2).count
-          .repartition(90)
 
-        gDF.foreachPartition(
-          (rows: Iterator[Row]) => groupedBulkUpdatePairs(COL_POSTED_DATE, rows)
-        )
+        // counter update of author posts
+        if (true) {
+          val gDF = dateToksDF.select(
+            col(COL_POSTED_DATE),
+            col(COL_TWITTER_AUTHOR)
+          ).groupBy(COL_POSTED_DATE, COL_TWITTER_AUTHOR).count.repartition(70)
+
+          gDF.foreachPartition(
+            (rows: Iterator[Row]) => groupedBulkUpdateCounters(COL_POSTED_DATE, COL_TWITTER_AUTHOR, rows)
+          )
+        }
+
+        // counter update of all pairs
+        if (true) {
+          val gDF = dateToksDF.explode(COL_TOKEN_SET, COL_PAIR) {
+            (toks: WrappedArray[String]) =>
+              toks.toSeq.distinct
+                // C(n,k) where k=2
+                .combinations(2).toList
+                // sort the 2-tuple so we can compare the pairs in subsequent groupBy
+                .map(_.sorted)
+                .map((x: Seq[String]) => Tuple2(x(0), x(1)))
+          }
+            .select(col(COL_POSTED_DATE), col(COL_PAIR + "._1").as(COL_TOKEN_1), col(COL_PAIR + "._2").as(COL_TOKEN_2))
+            .groupBy(COL_POSTED_DATE, COL_TOKEN_1, COL_TOKEN_2).count
+            .repartition(90)
+
+          gDF.foreachPartition(
+            (rows: Iterator[Row]) => groupedBulkUpdatePairs(COL_POSTED_DATE, rows)
+          )
+        }
       }
 
       //TODO: debug code, should move to test module
