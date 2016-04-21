@@ -36,18 +36,21 @@ class W2vScheduler extends Actor with Logging{
     val folderName:SimpleDateFormat = new SimpleDateFormat(Config.word2vecConf.getString("date-format"))
     //Get day before today
     val datenow = DateUtils.addDays(Calendar.getInstance().getTime(), -1)
+    val tokensFolder = s"$folderPrefix${folderName.format(datenow)}"
     logInfo(s"Generating model for: ${folderName.format(datenow)}")
     try{
-      val w2v = new Word2VecModelComputation(folderName.format(datenow))
+      val w2v = new Word2VecModelComputation(tokensFolder)
       w2v.generateModel()
     }catch{
-      case e: Exception => logError(s"Could not generate model for ${folderName.format(datenow)}", e)
+      case e: Exception => logError(s"Could not generate model for ${tokensFolder}", e)
     }
   }
 }
 
 object W2vScheduler {
   case object StartW2VModelGeneration
+
+  val folderPrefix = Config.word2vecConf.getString("prefix-tokens-folder-daily")
 
   def props: Props = {
     Props(new W2vScheduler)

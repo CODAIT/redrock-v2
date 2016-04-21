@@ -30,15 +30,4 @@ object ApplicationContext {
   // generic class to access and manage HDFS files/directories located in distributed environment.
   val hadoopFS: FileSystem = FileSystem.get(sparkContext.hadoopConfiguration)
 
-  RegisterTwokenizeUDF.register
-
-}
-
-object RegisterTwokenizeUDF{
-
-  def register = ApplicationContext.sqlContext.udf.register("twokenize", (text:String) => twokenize(text))
-
-  private def twokenize(text:String): Array[String] = {
-    cmu.arktweetnlp.Twokenize.tokenizeRawTweetText(text).toArray.map(_.toString.toLowerCase())
-  }
 }
