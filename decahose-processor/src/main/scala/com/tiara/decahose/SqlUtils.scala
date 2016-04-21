@@ -81,11 +81,8 @@ object SqlUtils {
     )
     else null
   )
-  val flatten = org.apache.spark.sql.functions.udf(
-    (it: WrappedArray[WrappedArray[String]]) => it.filter(_ != null).flatten
-  )
   val flattenDistinct = org.apache.spark.sql.functions.udf(
-    (it: WrappedArray[WrappedArray[String]]) => it.filter(_ != null).flatten.distinct
+    (it: WrappedArray[WrappedArray[String]]) => it.filter(_ != null).flatten.distinct.filter(_.length>=2)
   )
 
   //TODO: find a way to close pools/connections when the Spark job gets killed.
