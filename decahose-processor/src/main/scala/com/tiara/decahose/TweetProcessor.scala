@@ -28,7 +28,7 @@ object TweetProcessor extends Logging{
   val enDir = Config.processorConf.getString("daily-en-tweets-dir")
   val toksDir = Config.processorConf.getString("tokens-dir")
   val debugDir = Config.processorConf.getString("debug-dir")
-  val shouldUpdateCounters: Boolean = Config.processorConf.getString("update-redis-counters").toBoolean
+  val shouldUpdateCounters = Config.processorConf.getBoolean("update-redis-counters")
 
 
   def startProcessingStreamingData(): Unit = {

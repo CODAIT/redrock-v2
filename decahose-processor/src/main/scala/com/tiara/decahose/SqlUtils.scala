@@ -14,14 +14,14 @@ import redis.clients.jedis._
 object SqlUtils {
 
   // field names we generate in sql stmts
-  val COL_POSTED_DATE = "postedDate"
+  val COL_POSTED_DATE = Config.processorConf.getString("post-date-col-name")
+  val COL_TOKEN_SET = Config.processorConf.getString("tokens-column")
   val COL_POSTED_HOUR = "postedHour"
   val COL_TWITTER_ENTITY = "ES"
   val COL_TWITTER_AUTHOR = "AU"
   val COL_TOKEN = "tok"
   val COL_TOKEN_1 = "tok1"
   val COL_TOKEN_2 = "tok2"
-  val COL_TOKEN_SET = "toks"
   val COL_PAIR = "pair"
   val COL_COUNT = "count"
 

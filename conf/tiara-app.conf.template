@@ -7,7 +7,19 @@ tiara {
 
     decahose-processor{
 
-        decahose-dir = "/data/twitter/decahose/streaming"
+        decahose-dir = ${tiara.hadoop-default-fs}"/tiara/decahose/streaming"
+        daily-en-tweets-dir = ${tiara.hadoop-default-fs}"/tiara/en"
+        tokens-dir = ${tiara.hadoop-default-fs}"/tiara/toks"
+        debug-dir = ${tiara.hadoop-default-fs}"/tiara/debug"
+
+        post-date-col-name = "postedDate"
+        tokens-column = "toks"
+
+        update-redis-counters = false
+        redis-server = "spark11"
+
+        tweet-schema-json = "decahose-large.json"
+
         writing-mode-string = "_WRITING_"
 
         poll-decahose-actor{
@@ -46,10 +58,16 @@ tiara {
     }
 
     word-2-vec{
-        path-to-daily-tweets = ${tiara.hadoop-default-fs}"/daily/en"
+
+        historical{
+            start-date =
+            end-date =
+        }
+
+        path-to-daily-tweets = ${tiara.decahose-processor.tokens-dir}
         path-to-daily-models = ${tiara.hadoop-default-fs}"/models/daily"
-        col-name-tweet-txt = "body"
-        date-format = "yyyy_MM_dd"
+        col-name-tweet-txt = ${tiara.decahose-processor.tokens-column}
+        date-format = ${tiara.decahose-processor.post-date-col-name}"=yyyy-MM-dd"
 
         folder-name-model = "word2VecModel"
         folder-name-word-count = "frequencyAnalysis"
