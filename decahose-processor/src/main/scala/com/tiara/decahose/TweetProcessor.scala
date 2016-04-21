@@ -231,7 +231,7 @@ object TweetProcessor extends Logging{
             col("object.twitter_entities.user_mentions").as("omentions"))
 
           // save the counts of pair combinations to a json file
-          tagAndUserDF.select(flatten(array(
+          tagAndUserDF.select(flattenDistinct(array(
             tagToText(col("hashtags")),
             tagToText(col("ohashtags")),
             mentionToText(col("mentions")),
