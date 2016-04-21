@@ -31,10 +31,14 @@ object TweetProcessor extends Logging{
   val shouldUpdateCounters = Config.processorConf.getBoolean("update-redis-counters")
 
   def processHistoricalData(): Unit = {
+    val historicalPath = Config.processorConf.getString("historical.data-path").split(" ")
+    processBatchData(historicalPath)
+  }
+
+  def processBatchData(paths: Array[String]): Unit = {
     try {
-      val historicalPath = Config.processorConf.getString("historical.data-path")
-      logInfo(s"Processing historical data. Directory: $historicalPath")
-      val df = ApplicationContext.sqlContext.read.schema(ApplicationContext.schema).json(historicalPath)
+      logInfo(s"Processing batch data. Directory(s): " + paths.mkString(","))
+      val df = ApplicationContext.sqlContext.read.schema(ApplicationContext.schema).json(paths:_*)
       processedTweetsDataFrame(df)
     } catch {
       case e: Exception => logError("Something went wrong while processing historical batch", e)
@@ -76,7 +80,7 @@ object TweetProcessor extends Logging{
     ssc
   }
 
-  private def processedTweetsDataFrame(tweetsDF: DataFrame, debugString: String = "") = {
+  def processedTweetsDataFrame(tweetsDF: DataFrame, debugString: String = "") = {
     try{
 
       //TODO: in case of multiple files, use the file size information
