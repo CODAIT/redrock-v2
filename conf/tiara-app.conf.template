@@ -7,6 +7,11 @@ tiara {
 
     decahose-processor{
 
+        historical{
+            enabled = true
+            data-path = ${tiara.hadoop-default-fs}"data/rawTweets/*"
+        }
+
         decahose-dir = ${tiara.hadoop-default-fs}"/tiara/decahose/streaming"
         daily-en-tweets-dir = ${tiara.hadoop-default-fs}"/tiara/en"
         tokens-dir = ${tiara.hadoop-default-fs}"/tiara/toks"
@@ -60,6 +65,7 @@ tiara {
     word-2-vec{
 
         historical{
+            enabled = true
             start-date = "2016-01-01"
             end-date = "2016-01-31"
         }
@@ -67,7 +73,8 @@ tiara {
         path-to-daily-tweets = ${tiara.decahose-processor.tokens-dir}
         path-to-daily-models = ${tiara.hadoop-default-fs}"/models/daily"
         col-name-tweet-txt = ${tiara.decahose-processor.tokens-column}
-        date-format = ${tiara.decahose-processor.post-date-col-name}"=yyyy-MM-dd"
+        prefix-tokens-folder-daily = ${tiara.decahose-processor.post-date-col-name}"="
+        date-format = "yyyy-MM-dd"
 
         folder-name-model = "word2VecModel"
         folder-name-word-count = "frequencyAnalysis"

@@ -26,6 +26,11 @@ import org.apache.spark.Logging
  */
 object Application extends App with Logging {
 
+  // Execute historical batch before start Streaming
+  if(Config.processorConf.getBoolean("historical.enabled")){
+    TweetProcessor.processHistoricalData()
+  }
+
   /* Sends message to decahose actor so it can start downloading files */
   implicit val system = ActorSystem("Decahose-Producer")
   val pollingDecahoseData = system.actorOf(PollDecahoseData.props)

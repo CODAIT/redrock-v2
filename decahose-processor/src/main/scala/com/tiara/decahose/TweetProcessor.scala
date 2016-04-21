@@ -7,7 +7,7 @@ import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat
 import org.apache.spark.Logging
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.Row
+import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions._
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.{Seconds, StreamingContext, Time}
@@ -30,6 +30,16 @@ object TweetProcessor extends Logging{
   val debugDir = Config.processorConf.getString("debug-dir")
   val shouldUpdateCounters = Config.processorConf.getBoolean("update-redis-counters")
 
+  def processHistoricalData(): Unit = {
+    try {
+      val historicalPath = Config.processorConf.getString("historical.data-path")
+      logInfo(s"Processing historical data. Directory: $historicalPath")
+      val df = ApplicationContext.sqlContext.read.schema(ApplicationContext.schema).json(historicalPath)
+      processedTweetsDataFrame(df)
+    } catch {
+      case e: Exception => logError("Something went wrong while processing historical batch", e)
+    }
+  }
 
   def startProcessingStreamingData(): Unit = {
     logInfo("Creating Spark Streaming Context")
@@ -58,23 +68,16 @@ object TweetProcessor extends Logging{
       if (!rdd.partitions.isEmpty) {
         logInfo("Processing File(s):")
         extractFileName.findAllMatchIn(rdd.toDebugString).foreach((name) => logInfo(name.toString))
-        loadJSONToDataFrame(rdd)
+        val tweetsDF = ApplicationContext.sqlContext.read.schema(ApplicationContext.schema).json(rdd)
+        processedTweetsDataFrame(tweetsDF, rdd.toDebugString)
       }
     }
 
     ssc
   }
 
-  private def loadJSONToDataFrame(rdd: RDD[String]) = {
+  private def processedTweetsDataFrame(tweetsDF: DataFrame, debugString: String = "") = {
     try{
-
-      // Use predefined schema to speed up JSON parsing by more than 2x !!!
-      val tweetsDF = ApplicationContext.sqlContext.read.schema(ApplicationContext.schema).json(rdd)
-
-      val times: List[String]  = extractDateTime.findAllIn(rdd.toDebugString).toList
-      val timeWindow = times.min + "," + times.max
-      val dateTimes = times.sorted.mkString(",")
-      logInfo(s"============  ${timeWindow} ${dateTimes}")
 
       //TODO: in case of multiple files, use the file size information
       //TODO: to estimate/inform how long the subsequent processing will take
@@ -258,9 +261,9 @@ object TweetProcessor extends Logging{
       }
 
       // Delete file just if it was processed
-      if(Config.processorConf.getBoolean("spark.delete-file-after-processed")){
+      if(!debugString.isEmpty && Config.processorConf.getBoolean("spark.delete-file-after-processed")){
         logInfo("Deleting File(s):")
-        extractFileName.findAllMatchIn(rdd.toDebugString).foreach((name) => Utils.deleteFile(name.toString))
+        extractFileName.findAllMatchIn(debugString).foreach((name) => Utils.deleteFile(name.toString))
       }
 
 
