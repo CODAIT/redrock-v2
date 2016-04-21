@@ -197,8 +197,11 @@ object TweetProcessor extends Logging{
             .select(col(COL_POSTED_HOUR), col(COL_PAIR))
             .groupBy(COL_POSTED_HOUR, COL_PAIR).count
             .orderBy(col(COL_COUNT).desc)
-            .write.format("json")
-            .save(debugDir + "/hour-rel-counts/" + timeWindow)
+            .write
+            .partitionBy(COL_POSTED_HOUR)
+            .mode(org.apache.spark.sql.SaveMode.Overwrite)
+            .format("json")
+            .save(debugDir + "/hour-rel-counts/")
         }
 
         if (false) {
@@ -215,8 +218,10 @@ object TweetProcessor extends Logging{
             .select(col(COL_PAIR))
             .groupBy(COL_PAIR).count
             .orderBy(col(COL_COUNT).desc)
-            .write.format("json")
-            .save(debugDir + "/tok-rel-counts/" + timeWindow)
+            .write
+            .mode(org.apache.spark.sql.SaveMode.Overwrite)
+            .format("json")
+            .save(debugDir + "/tok-rel-counts/")
         }
 
         if (false) {
@@ -224,8 +229,10 @@ object TweetProcessor extends Logging{
             .select(explode(col(COL_TOKEN_SET)).as(COL_TOKEN))
             .groupBy(COL_TOKEN).count
             .orderBy(col(COL_COUNT).desc)
-            .write.format("json")
-            .save(debugDir + "/tok-counts/" + timeWindow)
+            .write
+            .mode(org.apache.spark.sql.SaveMode.Overwrite)
+            .format("json")
+            .save(debugDir + "/tok-counts/")
         }
 
         if (false) {
@@ -254,8 +261,10 @@ object TweetProcessor extends Logging{
             }.select("pair._1", "pair._2")
             .groupBy("_1", "_2").count
             .orderBy(col(COL_COUNT).desc)
-            .write.format("json")
-            .save(debugDir + "/rel-counts/" + timeWindow)
+            .write
+            .mode(org.apache.spark.sql.SaveMode.Overwrite)
+            .format("json")
+            .save(debugDir + "/rel-counts/")
         }
 
       }
