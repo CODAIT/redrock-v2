@@ -31,11 +31,6 @@ object Application extends App with Logging {
     TweetProcessor.processHistoricalData()
   }
 
-  /* Sends message to decahose actor so it can start downloading files */
-  implicit val system = ActorSystem("Decahose-Producer")
-  val pollingDecahoseData = system.actorOf(PollDecahoseData.props)
-  pollingDecahoseData ! PollDecahoseData.StartDownloadingData
-
   /* Start Spar Streaming to process downloaded data */
   TweetProcessor.startProcessingStreamingData()
 

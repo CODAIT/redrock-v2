@@ -25,6 +25,7 @@ object BuildSettings {
   val RestAPIName = "tiara-restapi"
   val DecahoseName = "tiara-decahose-processor"
   val Word2VecName = "tiara-word2vec"
+  val DecahoseActorName = "tiara-poll-decahose"
 
   val Version = "1.0"
   val ScalaVersion = "2.10.4"
@@ -62,6 +63,15 @@ object BuildSettings {
     scalaVersion  := ScalaVersion,
     organization  := "com.ibm.sparktc.tiara",
     description   := "TIARA word2vec model generation application",
+    scalacOptions := Seq("-deprecation", "-unchecked", "-encoding", "utf8", "-Xlint")
+  )
+
+  lazy val decahoseActorbuildSettings = Defaults.coreDefaultSettings ++ Seq (
+    name          := DecahoseActorName,
+    version       := Version,
+    scalaVersion  := ScalaVersion,
+    organization  := "com.ibm.sparktc.tiara",
+    description   := "TIARA decahose actor to poll new files application",
     scalacOptions := Seq("-deprecation", "-unchecked", "-encoding", "utf8", "-Xlint")
   )
 }
@@ -115,6 +125,11 @@ object Dependency {
   val apacheIO        = "commons-io" % "commons-io" % "2.4"
   val apacheLang      = "org.apache.commons" % "commons-lang3" % "3.4"
 
+  //hadoop
+  val hadoopCom = "org.apache.hadoop" % "hadoop-common" % "2.7.2"
+  val hadoophdfs = "org.apache.hadoop" % "hadoop-hdfs" % "2.7.2"
+
+
   val jedis           = "redis.clients" % "jedis" % "2.8.0"
 }
 
@@ -123,6 +138,8 @@ object Dependencies {
 
   val decahoseDependencies = Seq(sparkCore, sparkSQL, sparkHive, sparkStreaming, readCSV, configLib, akkaActor,
                                 codec,apacheLang,apacheIO,jedis)
+
+  val decahoseActorDependencies = Seq(configLib, akkaActor, codec,apacheLang,apacheIO,hadoopCom, hadoophdfs)
 
   val restAPIDependecies = Seq(sparkCore, sparkSQL, sparkHive, sparkMlLib, playJson,
     sprayCan, sprayRouting, akkaActor, configLib,spec)
@@ -176,9 +193,7 @@ object TiaraBuild extends Build{
       fork := true,
       connectInput in run := true,
       scalastyleConfig in Compile :=  file(".") / "project" / "scalastyle-config.xml",
-      assemblyJarName in assembly := "tiara-decahose-processor.jar",
-      // Manual dependency
-      unmanagedBase := file(".") / "lib"
+      assemblyJarName in assembly := "tiara-decahose-processor.jar"
     ))
 
   lazy val word2vecModelGeneration = Project(
@@ -195,8 +210,25 @@ object TiaraBuild extends Build{
       fork := true,
       connectInput in run := true,
       scalastyleConfig in Compile :=  file(".") / "project" / "scalastyle-config.xml",
-      assemblyJarName in assembly := "tiara-word2vec-model.jar",
-      // Manual dependency
-      unmanagedBase := file(".") / "lib"
+      assemblyJarName in assembly := "tiara-word2vec-model.jar"
     ))
+
+  lazy val decahosePollActor = Project(
+    id = "tiara-poll-decahose",
+    base = file("./decahose-poll-actor"),
+    settings = decahoseActorbuildSettings ++ Seq(
+      maxErrors := 5,
+      ivyScala := ivyScala.value map { _.copy(overrideScalaVersion = true) },
+      triggeredMessage := Watched.clearWhenTriggered,
+      resolvers := allResolvers,
+      libraryDependencies ++= Dependencies.decahoseActorDependencies,
+      unmanagedResourceDirectories in Compile += file(".") / "conf",
+      mainClass := Some("com.tiara.decahoseactor.Application"),
+      fork := true,
+      connectInput in run := true,
+      scalastyleConfig in Compile :=  file(".") / "project" / "scalastyle-config.xml",
+      assemblyJarName in assembly := "tiara-decahose-poll-actor.jar",
+      javaOptions += "-Xmx2G"
+    ))
+
 }

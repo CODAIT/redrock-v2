@@ -1,15 +1,12 @@
-package com.tiara.decahose
+package com.tiara.decahoseactor
 
-import java.io.File
 import java.net.URL
 import java.text.SimpleDateFormat
 
 import akka.actor.{Terminated, Props, Actor}
-import com.tiara.decahose.PollDecahoseData.StartDownloadingData
 import org.apache.commons.codec.binary.Base64
-import org.apache.commons.io.{FileUtils,IOUtils}
+import org.apache.commons.io.{IOUtils}
 import org.apache.commons.lang3.time.DateUtils
-import org.apache.spark.Logging
 import java.util.{TimeZone, Calendar, Date}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -20,10 +17,17 @@ import org.apache.hadoop.fs.Path;
 /**
  * Created by barbaragomes on 4/1/16.
  */
-class PollDecahoseData extends Actor with Logging{
+//TODO: Use log4j instead of println
+class PollDecahoseData extends Actor{
+
+  import PollDecahoseData._
 
   val delay = Config.processorConf.getInt("poll-decahose-actor.startDownloadingAfter").seconds
   val interval = Config.processorConf.getInt("poll-decahose-actor.timeInterval").seconds
+
+  val conf = new Configuration()
+  conf.set("fs.defaultFS", Config.appConf.getString("hadoop-default-fs"))
+  val hadoopFS = FileSystem.get(conf)
 
   context.system.scheduler.schedule(delay, interval) {
     downloadNewFile()
@@ -50,10 +54,10 @@ class PollDecahoseData extends Actor with Logging{
 
   override def receive: Receive = {
     case StartDownloadingData => {
-      logInfo("Decahose actor received message. Download of Decahose data started.")
+      println("Decahose actor received message. Download of Decahose data started.")
     }
     case Terminated => {
-      logInfo("Download of Decahose data stopped. Last downloaded file: ")
+      println("Download of Decahose data stopped. Last downloaded file: ")
     }
   }
 
@@ -67,21 +71,21 @@ class PollDecahoseData extends Actor with Logging{
   def downloadNewFile() = {
     val (fileName, url) = getNextFileNameAndURL()
     try {
-      logInfo(s"Downloading: $url")
+      println(s"Downloading: $url")
       val connection = new URL(url).openConnection
       connection.setRequestProperty("Authorization", header)
       //writes on hadoop file system - Same hadoop begin used by Spark
       val hdfs_path = s"${Config.processorConf.getString("decahose-dir")}/${fileName}"
-      val hdfs_file = ApplicationContext.hadoopFS.create(new Path(s"${hdfs_path}${Config.processorConf.getString("writing-mode-string")}"))
+      val hdfs_file = hadoopFS.create(new Path(s"${hdfs_path}${Config.processorConf.getString("writing-mode-string")}"))
       hdfs_file.write(IOUtils.toByteArray(connection.getInputStream))
       hdfs_file.close()
       //Rename File To indicate that the file is ready to be processed by Spark
-      ApplicationContext.hadoopFS.rename(new Path(s"${hdfs_path}${Config.processorConf.getString("writing-mode-string")}"), new Path(s"${hdfs_path}"))
+      hadoopFS.rename(new Path(s"${hdfs_path}${Config.processorConf.getString("writing-mode-string")}"), new Path(s"${hdfs_path}"))
       //To write on local file system
       //FileUtils.copyInputStreamToFile(connection.getInputStream, new File(s"${Config.appConf.getString("paths.decahose-dir")}/$fileName"))
-      logInfo(s"File $fileName downloaded.")
+      println(s"File $fileName downloaded.")
     }catch {
-      case e: Exception => logError(s"Could not download file: $fileName => URL: $url", e)
+      case e: Exception => println(s"Could not download file: $fileName => URL: $url"); println(e.toString)
     }
   }
 
