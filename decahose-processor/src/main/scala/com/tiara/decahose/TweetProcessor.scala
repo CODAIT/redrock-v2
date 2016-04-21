@@ -273,6 +273,10 @@ object TweetProcessor extends Logging{
 
       }
 
+      // Unpersist once is done
+      enDF.unpersist()
+      dateToksDF.unpersist()
+
       // Delete file just if it was processed
       if(!debugString.isEmpty && Config.processorConf.getBoolean("spark.delete-file-after-processed")){
         logInfo("Deleting File(s):")
