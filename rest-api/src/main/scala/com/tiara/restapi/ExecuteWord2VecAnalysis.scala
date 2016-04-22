@@ -66,8 +66,7 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
   private def getSynonyms(searchTerm: String, number: Int):Array[(String,Double)]={
     try {
       Word2Vec.model.findSynonyms(searchTerm, number)
-        .collect()
-        .map(result => (result(0).toString, result(1).asInstanceOf[Double]))
+        .map(result => (result._1, result._2))
     } catch {
       case notOnvac:IllegalStateException => {
         logInfo(s"$searchTerm is not on the vocabulary")

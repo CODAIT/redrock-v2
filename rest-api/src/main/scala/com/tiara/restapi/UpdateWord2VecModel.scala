@@ -2,7 +2,7 @@ package com.tiara.restapi
 
 import java.io.{BufferedReader, InputStreamReader}
 import org.apache.spark.Logging
-import org.apache.spark.ml.feature.Word2VecModel
+import org.apache.spark.mllib.feature.Word2VecModel
 import akka.actor.{Props, Actor}
 import org.apache.spark.sql.DataFrame
 import org.apache.hadoop.fs.Path
@@ -40,7 +40,7 @@ class UpdateWord2VecModel extends Actor with Logging{
       val modelPath = s"$modelsPath/$newModelName"
 
       try {
-        Word2Vec.model = Word2VecModel.load(s"$modelPath/$modelFolder")
+        Word2Vec.model = Word2VecModel.load(ApplicationContext.sparkContext,s"$modelPath/$modelFolder")
         Word2Vec.frequency = ApplicationContext.sqlContext.read.parquet(s"$modelPath/$freqFolder")
 
         // Delete token file

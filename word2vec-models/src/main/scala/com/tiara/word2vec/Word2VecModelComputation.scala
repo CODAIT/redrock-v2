@@ -4,9 +4,11 @@ import java.text.SimpleDateFormat
 
 import org.apache.hadoop.fs.Path
 import org.apache.spark.Logging
-import org.apache.spark.ml.feature.Word2Vec
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.mllib.feature.Word2Vec
+import org.apache.spark.rdd.RDD
 import org.apache.commons.lang3.time.DateUtils
+import scala.collection.mutable.WrappedArray
+import org.apache.spark.sql.Row
 
 /**
  * Created by barbaragomes on 4/15/16.
@@ -19,28 +21,31 @@ class Word2VecModelComputation(val date:String) extends Logging{
     val tokensPath = s"""${Config.word2vecConf.getString("path-to-daily-tweets")}/$date"""
     if(ApplicationContext.hadoopFS.exists(new Path(tokensPath))) {
       /* Read all tweets tokens inside the directory - Contain just EN */
-      val tweetsTokensDF = ApplicationContext.sqlContext
+      val tweetsTokensRDD = ApplicationContext.sqlContext
         .read.parquet(tokensPath)
         .select(tokens_col)
+        .rdd
+
+      val rddToWord2Vec = tweetsTokensRDD.map((r:Row)=> r.getAs[WrappedArray[String]](0))
 
       val folder = s"""$modelFolder/$date"""
 
       //Computing and storing frequency analysis
-      saveWordCount(tweetsTokensDF, folder)
+      saveWordCount(tweetsTokensRDD, folder)
 
       // Create word2Vec
       val w2v = new Word2Vec()
-        .setInputCol(tokens_col)
-        .setMaxIter(Config.word2vecConf.getInt("parameters.iterations-number"))
+        .setNumIterations(Config.word2vecConf.getInt("parameters.iterations-number"))
         .setMinCount(Config.word2vecConf.getInt("parameters.min-word-count"))
         .setNumPartitions(Config.word2vecConf.getInt("parameters.partition-number"))
         .setVectorSize(Config.word2vecConf.getInt("parameters.vector-size"))
+        .setSeed(42L)
 
       logInfo(s"Computing word2vec model for day == $date")
-      val w2v_model = w2v.fit(tweetsTokensDF)
+      val w2v_model = w2v.fit(rddToWord2Vec)
       logInfo(s"Word2vec model computed for day == $date")
-      logInfo(s"Word2vec Size == ${w2v_model.getVectors.count()}")
-      w2v_model.write.save(s"$folder/${Config.word2vecConf.getString("folder-name-model")}")
+      logInfo(s"Word2vec Size == ${w2v_model.getVectors.size}")
+      w2v_model.save(ApplicationContext.sparkContext,s"$folder/${Config.word2vecConf.getString("folder-name-model")}")
       logInfo(s"Word2vec model stored for day == $date")
 
       // Write token file to let the rest-api know when there is a new model
@@ -60,11 +65,11 @@ class Word2VecModelComputation(val date:String) extends Logging{
     }
   }
 
-  private def saveWordCount(filtered: DataFrame, folderPath: String) = {
+  private def saveWordCount(filtered: RDD[Row], folderPath: String) = {
     import ApplicationContext.sqlContext.implicits._
 
     logInfo("Computing Frequency analysis")
-    val freq = (filtered.rdd.flatMap(line => line.getSeq[String](0).map((_,1)))
+    val freq = (filtered.flatMap(line => line.getSeq[String](0).map((_,1)))
                .reduceByKey((a, b) => a + b)
                 .filter(_._2 >= Config.word2vecConf.getInt("parameters.min-word-count"))).toDF("word","freq")
     logInfo(s"Frequency Analysis ended. Total words: ${freq.count()}")
