@@ -12,6 +12,8 @@ import scala.util.{Success, Failure}
 
 object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
 
+  val objcName = "distance"
+  val objDescription = Json.obj("content" -> Json.arr("word", "distance", "frequency"))
 
   def getResults(searchTerm: String, number: Int): Future[String] = {
 
@@ -31,7 +33,7 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
     val startTime = System.nanoTime()
     val synonyms = getSynonyms(searchTerm,number)
 
-    var response:JsObject = Json.obj("forcegraph" -> JsNull)
+    var response:JsObject = buildResponse(searchTerm,false)
 
     if(synonyms != null && !synonyms.isEmpty){
       val frequency = getFrequency(synonyms.map{case (word, dist) => s""""$word""""})
@@ -39,17 +41,31 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
         val result:List[JsArray] = (synonyms ++ frequency).groupBy(_._1)
           .values
           .map(result => Json.arr(result(0)._1.toString, result(0)._2.toString, result(1)._2.toString)).toList
-        response = Json.obj("forcegraph" -> result)
+        response = buildResponse(searchTerm,result = result)
       }
     }else if(synonyms.isEmpty){
       // If is empty, the search term was not present on the word2vec vocabulary
-      response = Json.obj("forcegraph" -> Json.arr())
+      response = buildResponse(searchTerm)
     }
 
     val elapsed = (System.nanoTime() - startTime) / 1e9
     logInfo(s"Get synonyms finished. Exectuion time: $elapsed")
 
     Json.stringify(response)
+  }
+
+  private def buildResponse(searchTerm: String, success: Boolean = true, result: List[JsArray] = null):JsObject = {
+    val response = Json.obj("success" -> success) ++
+      Json.obj("status" -> 0) ++
+      Json.obj("searchTerm" -> searchTerm) ++
+      objDescription
+    if(!success)
+      response ++ Json.obj(objcName -> JsNull)
+    else if(result == null){
+      response ++ Json.obj(objcName -> Json.arr())
+    }else{
+      response ++ Json.obj(objcName -> result)
+    }
   }
 
   private def getFrequency(synonyms: Array[String]): Array[(String,Int)] ={
