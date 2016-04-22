@@ -82,8 +82,10 @@ tiara {
         folder-name-word-count = "frequencyAnalysis"
         token-file-name = "newModel.txt"
 
-        start-scheduler-after = 0
-        generate-model-timeinterval = 400
+        // Time to run the new model
+        run-new-model-at = 1
+        //Keep 24 hours for production (seconds)
+        generate-model-timeinterval = 86400
 
         parameters{
             partition-number = 6

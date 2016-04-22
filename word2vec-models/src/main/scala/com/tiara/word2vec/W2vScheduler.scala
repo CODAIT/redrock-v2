@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
 
 import akka.actor.{Props, Terminated, Actor}
-import org.apache.commons.lang3.time.DateUtils
+import org.apache.commons.lang.time.DateUtils
 import org.apache.spark.Logging
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -15,7 +15,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class W2vScheduler extends Actor with Logging{
 
   import W2vScheduler._
-  val delay = Config.word2vecConf.getInt("start-scheduler-after").seconds
+  val delay = calculateDelay()
   val interval = Config.word2vecConf.getInt("generate-model-timeinterval").seconds
 
   //TODO: create a scheduler to be executed at a specific time instead of intervals
@@ -26,6 +26,7 @@ class W2vScheduler extends Actor with Logging{
   override def receive: Receive = {
     case StartW2VModelGeneration => {
       logInfo("Word2Vec model generation started.")
+      generateModel()
     }
     case Terminated => {
       logInfo("Word2vec model stopped.")
@@ -54,5 +55,11 @@ object W2vScheduler {
 
   def props: Props = {
     Props(new W2vScheduler)
+  }
+
+  def calculateDelay():FiniteDuration ={
+    val datenow = Calendar.getInstance().getTime()
+    val nextTime = DateUtils.setMinutes(DateUtils.setHours(DateUtils.addDays(datenow,1), Config.word2vecConf.getInt("run-new-model-at")),0)
+    ((nextTime.getTime()-datenow.getTime())/1000).seconds
   }
 }
