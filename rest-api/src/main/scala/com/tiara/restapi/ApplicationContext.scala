@@ -25,5 +25,6 @@ object ApplicationContext {
   sqlContext.setConf("spark.sql.tungsten.enabled", "true")
 
   // generic class to access and manage HDFS files/directories located in distributed environment.
+  sparkContext.hadoopConfiguration.set("fs.defaultFS", Config.appConf.getString("hadoop-default-fs"))
   val hadoopFS: FileSystem = FileSystem.get(sparkContext.hadoopConfiguration)
 }
