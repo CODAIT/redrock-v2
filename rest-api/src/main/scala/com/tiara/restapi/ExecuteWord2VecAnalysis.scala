@@ -23,7 +23,7 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
     val result = future {getSynonymsFrequencyAndDistance(searchTerm.toLowerCase(),number)}
 
     result.recover{
-      case e: Exception => logError("Could not execute request.", e); Json.stringify(Json.obj("forcegraph" -> JsNull))
+      case e: Exception => logError("Could not execute request.", e); Json.stringify(buildResponse(searchTerm,false))
     }
 
   }
