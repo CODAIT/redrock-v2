@@ -26,6 +26,13 @@ import org.apache.spark.Logging
  */
 object Application extends App with Logging {
 
+  /* Closing Jedis connection pool when shutting down application */
+  sys.addShutdownHook{
+    logInfo("Exiting JVM")
+    logInfo("Closing Jedis Pool")
+    SqlUtils.pool.destroy()
+  }
+
   new Thread(new BatchJobServer).start()
 
   // Execute historical batch before start Streaming
