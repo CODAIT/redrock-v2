@@ -9,7 +9,7 @@ tiara {
 
         historical{
             enabled = true
-            data-path = ${tiara.hadoop-default-fs}"data/rawTweets/*"
+            data-path = ${tiara.hadoop-default-fs}"/data/rawTweets/*"
         }
 
         decahose-dir = ${tiara.hadoop-default-fs}"/tiara/decahose/streaming"
@@ -17,13 +17,11 @@ tiara {
         tokens-dir = ${tiara.hadoop-default-fs}"/tiara/toks"
         debug-dir = ${tiara.hadoop-default-fs}"/tiara/debug"
 
-        batch-server-listen-port = "9999"
-	
         post-date-col-name = "postedDate"
         tokens-column = "toks"
 
         update-redis-counters = false
-        redis-server = "spark11"
+        redis-server = "localhost"
 
         tweet-schema-json = "decahose-large.json"
 
@@ -40,8 +38,8 @@ tiara {
             fileNameExtensionGson = "activity.gson.gz"
 
             //Bluemix Credentials
-            user = "#########"
-            password = "###########"
+            user = "########"
+            password = "#######"
             //Bluemix URL
             hostname = "https://cde-archive.services.dal.bluemix.net/"
 
@@ -54,22 +52,22 @@ tiara {
         spark{
             sql-shuffle-partitions = 5
             UI-port = "4040"
-            executor-memory = "1g"
+            executor-memory = "2g"
             cores-max = 4
             executor-cores = 1
 
             //Batch time in seconds
             streaming-batch-time = 60
-            delete-file-after-processed = true
+            delete-file-after-processed = false
         }
     }
 
     word-2-vec{
 
         historical{
-            enabled = true
-            start-date = "2016-01-01"
-            end-date = "2016-01-31"
+            enabled = false
+            start-date = "2016-04-19"
+            end-date = "2016-04-21"
         }
 
         path-to-daily-tweets = ${tiara.decahose-processor.tokens-dir}
@@ -79,7 +77,7 @@ tiara {
         date-format = "yyyy-MM-dd"
 
         folder-name-model = "word2VecModel"
-        folder-name-word-count = "frequencyAnalysis"
+        folder-name-word-count = "wordCount"
         token-file-name = "newModel.txt"
 
         // Time to run the new model
@@ -108,10 +106,13 @@ tiara {
         bind-port = 16666
         bind-ip = "0.0.0.0"
 
+        daily-en-tweets-dir = ${tiara.decahose-processor.daily-en-tweets-dir}
         path-to-daily-models = ${tiara.word-2-vec.path-to-daily-models}
         token-file-name = ${tiara.word-2-vec.token-file-name}
         folder-name-model = ${tiara.word-2-vec.folder-name-model}
         folder-name-word-count = ${tiara.word-2-vec.folder-name-word-count}
+
+        jedis-server = ${tiara.decahose-processor.redis-server}
 
         start-scheduler-after = 0
         // Every 10min
