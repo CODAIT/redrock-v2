@@ -17,6 +17,8 @@ tiara {
         tokens-dir = ${tiara.hadoop-default-fs}"/tiara/toks"
         debug-dir = ${tiara.hadoop-default-fs}"/tiara/debug"
 
+        batch-server-listen-port = "9999"
+        
         post-date-col-name = "postedDate"
         tokens-column = "toks"
 
