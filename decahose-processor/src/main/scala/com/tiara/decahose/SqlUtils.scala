@@ -28,6 +28,10 @@ object SqlUtils {
   // SQL strings
   val SQL_EN_FILTER = "twitter_lang = 'en'"
 
+  val regexSuffixes: String = "[a-z]*" + scala.io.Source.fromInputStream(
+    getClass.getResourceAsStream("/suffixes.2")
+  ).getLines().mkString("(","|",")")
+
   // stop words, from the assembly jar, packaged from conf dir
   val stopWords: Set[String] = scala.io.Source.fromInputStream(
     getClass.getResourceAsStream("/stop-words.1")
@@ -65,6 +69,19 @@ object SqlUtils {
     (text: String) => if (text != null)
       com.tiara.decahose.Twokenize.tokenizeRawTweetText(text).asScala
         .map((x: String) => x.toLowerCase)
+        .filter((x: String) => !stopWords.contains(x) && !x.startsWith("http"))
+    else null
+  )
+
+  val lowerTwokensNoHttpNoStopNoApostrophe = org.apache.spark.sql.functions.udf(
+    (text: String) => if (text != null)
+      com.tiara.decahose.Twokenize.tokenizeRawTweetText(text).asScala
+        .map((x: String) => {
+          val lower = x.toLowerCase
+          if (lower.matches(regexSuffixes))
+            lower.substring(0, lower.lastIndexOf("'"))
+          else lower
+        })
         .filter((x: String) => !stopWords.contains(x) && !x.startsWith("http"))
     else null
   )
