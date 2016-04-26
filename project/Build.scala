@@ -142,7 +142,7 @@ object Dependencies {
   val decahoseActorDependencies = Seq(configLib, akkaActor, codec,apacheLang,apacheIO,hadoopCom, hadoophdfs)
 
   val restAPIDependecies = Seq(sparkCore, sparkSQL, sparkHive, sparkMlLib, playJson,
-    sprayCan, sprayRouting, akkaActor, configLib,spec)
+    sprayCan, sprayRouting, akkaActor, configLib,spec, jedis)
 
   val word2VecDependencies = Seq(sparkCore, sparkSQL, sparkHive, sparkMlLib, akkaActor)
 }

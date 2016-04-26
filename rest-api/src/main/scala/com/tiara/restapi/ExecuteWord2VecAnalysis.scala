@@ -12,6 +12,7 @@ import scala.util.{Success, Failure}
 
 object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
 
+  val redisCountKeySufix = Config.restapi.getString("redis-key-entity")
   val objcName = "distance"
   val objDescription = Json.obj("content" -> Json.arr("word", "distance", "frequency"))
 
@@ -36,7 +37,7 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
     var response:JsObject = buildResponse(searchTerm,false)
 
     if(synonyms != null && !synonyms.isEmpty){
-      val frequency = getFrequency(synonyms.map{case (word, dist) => s""""$word""""})
+      val frequency = getFrequency(synonyms.map{case (word, dist) => s"$word"})
       if(frequency != null){
         val result:List[JsArray] = (synonyms ++ frequency).groupBy(_._1)
           .values
@@ -70,10 +71,25 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
 
   private def getFrequency(synonyms: Array[String]): Array[(String,Int)] ={
     try {
+      val jedis = ApplicationContext.jedisPool.getResource
+      var response: Array[(String,Int)] = Array.empty
+      for(synonym <- synonyms){
+        var key = s"${InMemoryData.date}:${redisCountKeySufix}"
+        val startWith = synonym.charAt(0)
+        if(startWith == '#' || startWith =='@'){
+          key = s"$key${startWith}"
+        }else{
+          key = s"${key}S"
+        }
+        response = response :+ (synonym, jedis.zscore(key,synonym).toInt)
+      }
+      jedis.close()
+      response
+      /* Using counters from redis
       val inString = synonyms.mkString("(", ",", ")")
       Word2Vec.frequency.where(s"word in $inString")
         .collect()
-        .map(result => (result(0).toString, result(1).asInstanceOf[Int]))
+        .map(result => (result(0).toString, result(1).asInstanceOf[Int]))*/
     } catch{
       case e: Exception => logError("Could not get freq count", e); null
     }
@@ -81,7 +97,7 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
 
   private def getSynonyms(searchTerm: String, number: Int):Array[(String,Double)]={
     try {
-      Word2Vec.model.findSynonyms(searchTerm, number)
+      InMemoryData.word2VecModel.findSynonyms(searchTerm, number)
         .map(result => (result._1, result._2))
     } catch {
       case notOnvac:IllegalStateException => {

@@ -8,6 +8,7 @@ import org.apache.spark.sql.DataFrame
 import org.apache.hadoop.fs.Path
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import org.apache.spark.sql.functions._
 /**
  * Created by barbaragomes on 4/19/16.
  */
@@ -40,10 +41,26 @@ class UpdateWord2VecModel extends Actor with Logging{
       val modelPath = s"$modelsPath/$newModelName"
 
       try {
-        Word2Vec.model = Word2VecModel.load(ApplicationContext.sparkContext,s"$modelPath/$modelFolder")
-        Word2Vec.frequency = ApplicationContext.sqlContext.read.parquet(s"$modelPath/$freqFolder")
+        InMemoryData.word2VecModel = Word2VecModel.load(ApplicationContext.sparkContext,s"$modelPath/$modelFolder")
+        // Using counters from Redis
+        // InMemoryData.frequency = ApplicationContext.sqlContext.read.parquet(s"$modelPath/$freqFolder")
+        val newRTDF = ApplicationContext.sqlContext.read.parquet(s"$englishPath/$newModelName")
+                                  .filter("verb = 'share'")
+                                  .select(col("actor.preferredUsername").as("uid"),
+                                          col("object.actor.preferredUsername").as("ouid"),
+                                          col("actor.followersCount"),
+                                          col("gnip.klout_score"),
+                                          col("object.body"))
+        // Change in memory DF
+        if (InMemoryData.retweetsENDF != null) InMemoryData.retweetsENDF.unpersist(true)
+        InMemoryData.retweetsENDF = newRTDF
+        InMemoryData.retweetsENDF.persist()
 
-        // Delete token file
+        // Get string reference to the date for the model and RT DF
+        InMemoryData.date = newModelName.replace(removePrefix, "")
+        logInfo(s"-${InMemoryData.date}")
+
+          // Delete token file
         deleteTokenFileAfterProcessed
 
       }catch {
@@ -78,6 +95,8 @@ object UpdateWord2VecModel {
   val tokenFile = s"${modelsPath}/${Config.restapi.getString("token-file-name")}"
   val modelFolder = Config.restapi.getString("folder-name-model")
   val freqFolder = Config.restapi.getString("folder-name-word-count")
+  val englishPath = Config.restapi.getString("daily-en-tweets-dir")
+  val removePrefix = Config.restapi.getString("prefix-tokens-folder-daily")
 
   case object StartMonitoringWord2VecModels
 
@@ -86,9 +105,15 @@ object UpdateWord2VecModel {
   }
 }
 
-object Word2Vec{
+object InMemoryData{
   // Reference to the current model
-  @volatile var model: Word2VecModel = null
+  @volatile var word2VecModel: Word2VecModel = null
   // Reference to the current frequency analysis
-  @volatile var frequency: DataFrame = null
+  // Use counters from redis
+  // @volatile var frequency: DataFrame = null
+  // Reference to the EN RT for the same date as the word2vec
+  @volatile var retweetsENDF: DataFrame = null
+  // Date
+  @volatile var date: String = ""
 }
+
