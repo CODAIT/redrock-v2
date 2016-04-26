@@ -31,7 +31,8 @@ class Word2VecModelComputation(val date:String) extends Logging{
       val folder = s"""$modelFolder/$date"""
 
       //Computing and storing frequency analysis
-      saveWordCount(tweetsTokensRDD, folder)
+      // Use counters from redis
+      //saveWordCount(tweetsTokensRDD, folder)
 
       // Create word2Vec
       val w2v = new Word2Vec()
