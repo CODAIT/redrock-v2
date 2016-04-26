@@ -16,8 +16,8 @@ object SqlUtils {
   // field names we generate in sql stmts
   val COL_POSTED_DATE = Config.processorConf.getString("post-date-col-name")
   val COL_TOKEN_SET = Config.processorConf.getString("tokens-column")
+  val COL_TWITTER_ENTITY = Config.processorConf.getString("redis-tweet-entity-token-count")
   val COL_POSTED_HOUR = "postedHour"
-  val COL_TWITTER_ENTITY = "ES"
   val COL_TWITTER_AUTHOR = "AU"
   val COL_TOKEN = "tok"
   val COL_TOKEN_1 = "tok1"

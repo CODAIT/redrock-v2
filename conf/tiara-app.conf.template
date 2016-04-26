@@ -18,11 +18,12 @@ tiara {
         debug-dir = ${tiara.hadoop-default-fs}"/tiara/debug"
 
         batch-server-listen-port = "9999"
-        
+
         post-date-col-name = "postedDate"
         tokens-column = "toks"
+        redis-tweet-entity-token-count = "ES"
 
-        update-redis-counters = false
+        update-redis-counters = true
         redis-server = "localhost"
 
         tweet-schema-json = "decahose-large.json"
@@ -41,7 +42,7 @@ tiara {
 
             //Bluemix Credentials
             user = "########"
-            password = "#######"
+            password = "###########"
             //Bluemix URL
             hostname = "https://cde-archive.services.dal.bluemix.net/"
 
@@ -68,12 +69,12 @@ tiara {
 
         historical{
             enabled = false
-            start-date = "2016-04-19"
+            start-date = "2016-04-21"
             end-date = "2016-04-21"
         }
 
         path-to-daily-tweets = ${tiara.decahose-processor.tokens-dir}
-        path-to-daily-models = ${tiara.hadoop-default-fs}"/models/daily"
+        path-to-daily-models = ${tiara.hadoop-default-fs}"/tiara/models/daily"
         col-name-tweet-txt = ${tiara.decahose-processor.tokens-column}
         prefix-tokens-folder-daily = ${tiara.decahose-processor.post-date-col-name}"="
         date-format = "yyyy-MM-dd"
@@ -114,7 +115,9 @@ tiara {
         folder-name-model = ${tiara.word-2-vec.folder-name-model}
         folder-name-word-count = ${tiara.word-2-vec.folder-name-word-count}
 
-        jedis-server = ${tiara.decahose-processor.redis-server}
+        redis-server = ${tiara.decahose-processor.redis-server}
+        redis-key-entity = ${tiara.decahose-processor.redis-tweet-entity-token-count}
+        prefix-tokens-folder-daily = ${tiara.word-2-vec.prefix-tokens-folder-daily}
 
         start-scheduler-after = 0
         // Every 10min

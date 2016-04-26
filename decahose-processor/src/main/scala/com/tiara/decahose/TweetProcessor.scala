@@ -143,7 +143,8 @@ object TweetProcessor extends Logging{
         }
 
         // counter update of author posts
-        if (true) {
+        // Barbara: Do not need to compute it for now
+        if (false) {
           val gDF = dateToksDF.select(
             col(COL_POSTED_DATE),
             col(COL_TWITTER_AUTHOR)
@@ -155,7 +156,8 @@ object TweetProcessor extends Logging{
         }
 
         // counter update of all pairs
-        if (true) {
+        // Barbara: Do not need to compute it for now
+        if (false) {
           val gDF = dateToksDF.explode(COL_TOKEN_SET, COL_PAIR) {
             (toks: WrappedArray[String]) =>
               toks.toSeq.distinct
