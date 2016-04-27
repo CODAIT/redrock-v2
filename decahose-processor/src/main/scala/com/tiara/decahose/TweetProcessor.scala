@@ -114,8 +114,8 @@ object TweetProcessor extends Logging{
           col(COL_POSTED_DATE),
           col("actor.preferredUsername").as(COL_TWITTER_AUTHOR),
           flattenDistinct(array(
-            lowerTwokensNoHttpNoStopNoApostrophe(col("body")),
-            lowerTwokensNoHttpNoStopNoApostrophe(col("object.body"))
+            lowerTwokensNoHttpNoStopNoApostropheNoNumbers(col("body")),
+            lowerTwokensNoHttpNoStopNoApostropheNoNumbers(col("object.body"))
           )).as(COL_TOKEN_SET))
         .repartition(90)
 
