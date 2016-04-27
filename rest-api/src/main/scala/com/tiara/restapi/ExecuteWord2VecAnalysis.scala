@@ -81,7 +81,10 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
         }else{
           key = s"${key}S"
         }
-        response = response :+ (synonym, jedis.zscore(key,synonym).toInt)
+        // Return zero if the words is not on redis. That should not happen frequently
+        val redisReponse = jedis.zscore(key,synonym)
+        val freq =  if(redisReponse == null) 0 else redisReponse.toInt
+        response = response :+ (synonym, freq)
       }
       jedis.close()
       response
