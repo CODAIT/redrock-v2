@@ -58,7 +58,6 @@ class UpdateWord2VecModel extends Actor with Logging{
 
         // Get string reference to the date for the model and RT DF
         InMemoryData.date = newModelName.replace(removePrefix, "")
-        logInfo(s"-${InMemoryData.date}")
 
           // Delete token file
         deleteTokenFileAfterProcessed
