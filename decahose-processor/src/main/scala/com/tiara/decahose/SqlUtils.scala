@@ -80,8 +80,10 @@ object SqlUtils {
       com.tiara.decahose.Twokenize.tokenizeRawTweetText(text).asScala
         .map((x: String) => {
           val lower = x.toLowerCase
-          if (lower.matches(regexSuffixes))
-            lower.substring(0, lower.lastIndexOf("'"))
+          if (lower.matches(regexSuffixes)) {
+            val index = if (lower.lastIndexOf("'") == -1) lower.lastIndexOf("’") else lower.lastIndexOf("'")
+            lower.substring(0, index)
+          }
           else lower
         })
         .filter((x: String) => !stopWords.contains(x) && !x.startsWith("http"))
@@ -94,8 +96,10 @@ object SqlUtils {
       com.tiara.decahose.Twokenize.tokenizeRawTweetText(text).asScala
         .map((x: String) => {
         val lower = x.toLowerCase
-        if (lower.matches(regexSuffixes))
-          lower.substring(0, lower.lastIndexOf("'"))
+        if (lower.matches(regexSuffixes)) {
+          val index = if(lower.lastIndexOf("'") == -1) lower.lastIndexOf("’") else lower.lastIndexOf("'")
+          lower.substring(0, index)
+        }
         else lower
       })
         .filter((x: String) => !stopWords.contains(x) && !x.startsWith("http") && !x.matches(regexNumber))
