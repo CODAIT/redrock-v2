@@ -41,6 +41,7 @@ class Word2VecModelComputation(val date:String) extends Logging{
         .setNumPartitions(Config.word2vecConf.getInt("parameters.partition-number"))
         .setVectorSize(Config.word2vecConf.getInt("parameters.vector-size"))
         .setSeed(42L)
+        .setWindowSize(Config.word2vecConf.getInt("parameters.window-size"))
 
       logInfo(s"Computing word2vec model for day == $date")
       val w2v_model = w2v.fit(rddToWord2Vec)

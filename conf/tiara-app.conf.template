@@ -93,6 +93,7 @@ tiara {
             iterations-number = 6
             min-word-count = 10
             vector-size = 100
+            window-size = 10
         }
 
         spark{
