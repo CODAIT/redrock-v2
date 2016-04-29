@@ -171,6 +171,7 @@ object TiaraBuild extends Build{
       triggeredMessage := Watched.clearWhenTriggered,
       resolvers := allResolvers,
       libraryDependencies ++= Dependencies.restAPIDependecies,
+      unmanagedBase in Compile := file(".") / "lib",
       unmanagedResourceDirectories in Compile += file(".") / "conf",
       mainClass := Some("com.tiara.restapi.Application"),
       fork := true,
