@@ -33,32 +33,32 @@ object ExecuteCommunityGraph extends Logging{
   }
 
   private def getCommunityGraphForVisualization(searchTerms: String, get3Dresults: Boolean): String = {
+    val startTime = System.nanoTime()
+    logInfo("Filtering RT dataframe")
     //Get filtered retweets
     val filterRegex = s"(${searchTerms.trim.replaceAll(",","|")})"
     val filteredDF = InMemoryData.retweetsENDF.filter(col("body").rlike(filterRegex))
 
     var results: JsObject = null
-    if(get3Dresults) {
-      results = getCommunity3D(filteredDF)
-    }else {
-      results = getCommunity2D(filteredDF)
+    var success:Boolean = false;
+    try {
+      results = getCommunity(filteredDF, get3Dresults)
+      success = true
+    }catch {
+      case e: Exception => logInfo("Error while generating community graph", e)
     }
 
-    val response:JsObject = buildResponse(get3Dresults, true, results)
+    val response:JsObject = buildResponse(get3Dresults, success, results)
+    val elapsed = (System.nanoTime() - startTime) / 1e9
+    logInfo(s"Community Graph finished. Exectuion time: $elapsed")
 
     Json.stringify(response)
   }
 
-  private def getCommunity2D(filteredDF: DataFrame): JsObject = {
+  private def getCommunity(filteredDF: DataFrame, get3Dresults: Boolean): JsObject = {
     val edgeList = filteredDF.select(col("uid"), col("ouid")).collect.map((r: Row) => (r.getString(0), r.getString(1)))
 
-    GraphUtils.edgeListToFinalJson(edgeList, zeroZ = true)
-  }
-
-  private def getCommunity3D(filteredDF: DataFrame): JsObject = {
-    val edgeList = filteredDF.select(col("uid"), col("ouid")).collect.map((r: Row) => (r.getString(0), r.getString(1)))
-
-    GraphUtils.edgeListToFinalJson(edgeList, zeroZ=false)
+    GraphUtils.edgeListToFinalJson(edgeList, zeroZ = !get3Dresults)
   }
 
   private def buildResponse(get3Dresults:Boolean, success: Boolean = true, result: JsObject = null):JsObject = {

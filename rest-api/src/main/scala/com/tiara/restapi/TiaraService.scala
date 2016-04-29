@@ -25,9 +25,9 @@ class TiaraServiceActor extends Actor with TiaraService {
 trait TiaraService extends HttpService {
 
   val home = pathPrefix("tiara")
-  val forceNodeGraph = path("getsynonyms") & parameters('searchTerm, 'count.as[Int])
-  val communityGraph = path("getCommunities") & parameters('searchTerms)
-  val communityGraph3D = path("getCommunities3D") & parameters('searchTerms)
+  val forceNodeGraph = path("getsynonyms") & parameters('searchterm, 'count.as[Int])
+  val communityGraph = path("getcommunities") & parameters('searchterms, 'get3d.as[Boolean])
+  val topTerms = path("getTopTerm") & parameters('termtype)
 
   val tiaraRoute =
     home {
@@ -42,26 +42,25 @@ trait TiaraService extends HttpService {
           }
         }
       } ~
-      communityGraph { (searchTerms) =>
+      communityGraph { (searchTerms, get3D) =>
         get{
           respondWithMediaType(`application/json`) {
             complete {
-              ExecuteCommunityGraph.getResults(searchTerms)
+              ExecuteCommunityGraph.getResults(searchTerms,get3D)
             }
           }
         }
       } ~
-      communityGraph3D { (searchTerms) =>
+      topTerms { (termtype) =>
         get{
           respondWithMediaType(`application/json`) {
             complete {
-              ExecuteCommunityGraph.getResults(searchTerms, true)
+              "Not implemented yet"
             }
           }
         }
       }
-
-
+      
     }
 
 }
