@@ -30,9 +30,9 @@ sbt 'project tiara-word2vec' assembly
 # Changes the location where spark is being launched so it creates its own metastore_db
 cd $TIARA_HOME/decahose-processor
 
-echo "============ Running Decahose Spark Streaming =============="
+echo "============ Running Word2vec =============="
 #run program on cluster
 HOSTNAME="$(/bin/hostname -f)"
 nohup $SPARK_HOME/bin/spark-submit --driver-java-options "-Dlog4j.configuration=file://$TIARA_HOME/conf/log4j.properties" --driver-memory 3g --num-executors 4 --master spark://$HOSTNAME:7077 --class com.tiara.word2vec.Application $TIARA_HOME/word2vec-models/target/scala-2.10/tiara-word2vec-model.jar > $TIARA_HOME/word2vec-models/nohup-word2vec.out&
 
-echo "======== Decahose started. Check nohup-decahose.out =============="
+echo "======== Word2vec started. Check nohup-Word2vec.out =============="

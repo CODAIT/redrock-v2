@@ -27,7 +27,7 @@ trait TiaraService extends HttpService {
   val home = pathPrefix("tiara")
   val forceNodeGraph = path("getsynonyms") & parameters('searchterm, 'count.as[Int])
   val communityGraph = path("getcommunities") & parameters('searchterms, 'get3d.as[Boolean])
-  val topTerms = path("getTopTerm") & parameters('termtype)
+  val topTerms = path("gettopterms") & parameters('count.as[Int])
 
   val tiaraRoute =
     home {
@@ -51,11 +51,11 @@ trait TiaraService extends HttpService {
           }
         }
       } ~
-      topTerms { (termtype) =>
+      topTerms { (count) =>
         get{
           respondWithMediaType(`application/json`) {
             complete {
-              "Not implemented yet"
+              ExecuteMetricAnalysis.getTopTerms(count)
             }
           }
         }
