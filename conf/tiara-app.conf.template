@@ -83,6 +83,8 @@ tiara {
         folder-name-word-count = "wordCount"
         token-file-name = "newModel.txt"
 
+        use-only-hashtag-handle = true
+
         // Time to run the new model
         run-new-model-at = 1
         //Keep 24 hours for production (seconds)

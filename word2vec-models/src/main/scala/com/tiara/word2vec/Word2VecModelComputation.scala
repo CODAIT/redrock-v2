@@ -9,7 +9,8 @@ import org.apache.spark.rdd.RDD
 import org.apache.commons.lang3.time.DateUtils
 import scala.collection.mutable.WrappedArray
 import org.apache.spark.sql.Row
-
+import SqlUtils._
+import org.apache.spark.sql.functions._
 /**
  * Created by barbaragomes on 4/15/16.
  */
@@ -21,10 +22,16 @@ class Word2VecModelComputation(val date:String) extends Logging{
     val tokensPath = s"""${Config.word2vecConf.getString("path-to-daily-tweets")}/$date"""
     if(ApplicationContext.hadoopFS.exists(new Path(tokensPath))) {
       /* Read all tweets tokens inside the directory - Contain just EN */
-      val tweetsTokensRDD = ApplicationContext.sqlContext
+      val tweetsTokens = ApplicationContext.sqlContext
         .read.parquet(tokensPath)
         .select(tokens_col)
-        .rdd
+
+      val tweetsTokensRDD = if (useOnlyHashAndHandles)
+                              tweetsTokens.select(getHashtagsAndHandles(col(tokens_col)).as(tokens_col))
+                                .filter(!isEmpty(col(tokens_col)))
+                                .rdd
+                            else
+                              tweetsTokens.rdd
 
       val rddToWord2Vec = tweetsTokensRDD.map((r:Row)=> r.getAs[WrappedArray[String]](0))
 
@@ -84,7 +91,8 @@ class Word2VecModelComputation(val date:String) extends Logging{
 object Word2VecModelComputation extends Logging{
 
   // Column name that contains tweet txt
-  val tokens_col = Config.word2vecConf.getString("col-name-tweet-txt");
+  val tokens_col = Config.word2vecConf.getString("col-name-tweet-txt")
+  val useOnlyHashAndHandles = Config.word2vecConf.getBoolean("use-only-hashtag-handle")
 
   val modelFolder = Config.word2vecConf.getString("path-to-daily-models")
   val tokenFileName = Config.word2vecConf.getString("token-file-name")

@@ -50,7 +50,7 @@ object ExecuteCommunityGraph extends Logging{
 
     val response:JsObject = buildResponse(get3Dresults, success, results)
     val elapsed = (System.nanoTime() - startTime) / 1e9
-    logInfo(s"Community Graph finished. Exectuion time: $elapsed")
+    logInfo(s"Community Graph finished. Execution time: $elapsed")
 
     Json.stringify(response)
   }
