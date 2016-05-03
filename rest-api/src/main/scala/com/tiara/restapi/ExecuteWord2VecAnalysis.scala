@@ -110,6 +110,7 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
         key = s"${key}S"
       }
       val redisReponse = jedis.zscore(key, searchTerm)
+      jedis.close()
       if (redisReponse == null) 0 else redisReponse.toInt
     }catch{
       case e:Exception => logError("Could not get freq for search term", e); 0
