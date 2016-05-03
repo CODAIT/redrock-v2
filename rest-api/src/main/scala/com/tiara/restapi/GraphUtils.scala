@@ -93,21 +93,16 @@ object GraphUtils {
     val nodes = Json.obj("nodes" ->
       JsArray(graphModel.getGraph.getNodes.map(
         (n: Node) =>
-          Json.obj("label" -> n.getId.toString) ++
-            Json.obj("id" -> n.getStoreId.toString) ++
-            Json.obj("degree" -> directedGraph.getDegree(n)) ++
-            Json.obj("community" -> n.getAttribute(modCol).toString) ++
-            Json.obj("x" -> n.x) ++ Json.obj("y" -> n.y) ++ Json.obj("z" -> n.z)
+          Json.arr(n.getId.toString, n.getStoreId.toString, directedGraph.getDegree(n),
+              n.getAttribute(modCol).toString, n.x, n.y, n.z)
       ).toSeq)
     )
 
     val edges = Json.obj("edges" ->
       JsArray(graphModel.getGraph.getEdges.map(
         (e: Edge) =>
-          Json.obj("id" -> e.getTarget.getId.toString) ++
-            Json.obj("source" -> e.getSource.getStoreId.toString) ++
-            Json.obj("target" -> e.getTarget.getStoreId.toString) ++
-            Json.obj("weight" -> e.getWeight.toString)
+          Json.arr(e.getTarget.getId.toString, e.getSource.getStoreId.toString,
+            e.getTarget.getStoreId.toString, e.getWeight.toString)
       ).toSeq)
     )
 
