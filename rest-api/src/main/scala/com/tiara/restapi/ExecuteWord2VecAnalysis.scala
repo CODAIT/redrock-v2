@@ -59,6 +59,7 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
     val response = Json.obj("success" -> success) ++
       Json.obj("status" -> 0) ++
       Json.obj("searchTerm" -> searchTerm) ++
+      Json.obj("searchTermCount" -> getSearchTermFrequency(searchTerm))
       objDescription
     if(!success)
       response ++ Json.obj(objcName -> JsNull)
@@ -95,6 +96,23 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
         .map(result => (result(0).toString, result(1).asInstanceOf[Int]))*/
     } catch{
       case e: Exception => logError("Could not get freq count", e); null
+    }
+  }
+
+  private def getSearchTermFrequency(searchTerm: String): Int = {
+    try {
+      val jedis = ApplicationContext.jedisPool.getResource
+      var key = s"${InMemoryData.date}:${redisCountKeySufix}"
+      val startWith = searchTerm.charAt(0)
+      if (startWith == '#' || startWith == '@') {
+        key = s"$key${startWith}"
+      } else {
+        key = s"${key}S"
+      }
+      val redisReponse = jedis.zscore(key, searchTerm)
+      if (redisReponse == null) 0 else redisReponse.toInt
+    }catch{
+      case e:Exception => logError("Could not get freq for search term", e); 0
     }
   }
 
