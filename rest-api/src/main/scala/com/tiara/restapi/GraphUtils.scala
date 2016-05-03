@@ -1,15 +1,15 @@
 package com.tiara.restapi
 
 import org.gephi.statistics.plugin.Modularity
+
 import scala.collection.JavaConversions._
 import org.gephi.graph.api._
 import org.gephi.graph.api.Configuration
 import org.gephi.graph.api.GraphModel
-import org.gephi.graph.impl.GraphModelImpl
+import org.gephi.graph.impl.{GraphModelImpl, NodeImpl}
 import org.gephi.layout.plugin.forceAtlas3D.ForceAtlas3DLayout
 import org.gephi.layout.plugin.forceAtlas2.ForceAtlas2
-
-import play.api.libs.json.{JsNull, JsObject, JsArray, Json}
+import play.api.libs.json.{JsArray, JsNull, JsObject, Json}
 
 
 /**
@@ -88,12 +88,14 @@ object GraphUtils {
 
   def modelToJson(graphModel: GraphModel): JsObject = {
     val modCol = graphModel.getNodeTable.getColumn(Modularity.MODULARITY_CLASS)
+    val directedGraph = graphModel.getDirectedGraph
 
     val nodes = Json.obj("nodes" ->
       JsArray(graphModel.getGraph.getNodes.map(
         (n: Node) =>
           Json.obj("label" -> n.getId.toString) ++
             Json.obj("id" -> n.getStoreId.toString) ++
+            Json.obj("degree" -> directedGraph.getDegree(n)) ++
             Json.obj("community" -> n.getAttribute(modCol).toString) ++
             Json.obj("x" -> n.x) ++ Json.obj("y" -> n.y) ++ Json.obj("z" -> n.z)
       ).toSeq)
