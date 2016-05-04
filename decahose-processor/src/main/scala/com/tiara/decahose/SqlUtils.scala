@@ -127,6 +127,9 @@ object SqlUtils {
   val pool: JedisPool = new JedisPool(new JedisPoolConfig(), Config.processorConf.getString("redis-server"))
   val MAX_REDIS_PIPELINE = 10000
 
+  // update count of unordered pairs (A, B) in redis
+  // we maintain both date#A => (B, count)  and date#B => (A, count) so we can lookup the count from
+  // either direction
   def groupedBulkUpdatePairs(tsFieldName: String, rows: Iterator[Row]): Unit = {
     val jedis = pool.getResource
     var pipe = jedis.pipelined()
@@ -154,6 +157,8 @@ object SqlUtils {
     jedis.close()
   }
 
+  // update count of 2-tuple (A, B) in redis
+  // we maintain only date#A => (B, count)
   def groupedBulkUpdateTuples(tsFieldName: String, rows: Iterator[Row]): Unit = {
     val jedis = pool.getResource
     var pipe = jedis.pipelined()
@@ -179,6 +184,8 @@ object SqlUtils {
     jedis.close()
   }
 
+  // update frequency count of single entity in redis
+  // we maintain date#entity => (token, count)
   def groupedBulkUpdateCounters(tsFieldName: String, tokenFieldName: String, rows: Iterator[Row]): Unit = {
     val jedis = pool.getResource
     var pipe = jedis.pipelined()
