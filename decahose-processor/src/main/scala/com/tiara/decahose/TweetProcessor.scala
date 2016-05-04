@@ -155,6 +155,21 @@ object TweetProcessor extends Logging{
           )
         }
 
+        // counter update for the tuple2 of (hashtag: author)
+        // this will provide top-k posters of a given hashtag
+        if (false) {
+          val gDF = dateToksDF.filter("verb = 'post'")
+            .select(
+              col(COL_POSTED_DATE),
+              explode(tagToText(col("hashtags"))).as(COL_TOKEN_1),
+              col(COL_TWITTER_AUTHOR).as(COL_TOKEN_2)
+            ).groupBy(COL_POSTED_DATE, COL_TOKEN_1, COL_TOKEN_2).count.repartition(70)
+
+          gDF.foreachPartition(
+            (rows: Iterator[Row]) => groupedBulkUpdateTuples(COL_POSTED_DATE, rows)
+          )
+        }
+
         // counter update of all pairs
         // Barbara: Do not need to compute it for now
         if (false) {

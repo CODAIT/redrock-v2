@@ -154,6 +154,31 @@ object SqlUtils {
     jedis.close()
   }
 
+  def groupedBulkUpdateTuples(tsFieldName: String, rows: Iterator[Row]): Unit = {
+    val jedis = pool.getResource
+    var pipe = jedis.pipelined()
+    var i: Int = 0
+    rows.foreach(
+      (row: Row) => {
+        val date: String = row.getAs[String](tsFieldName)
+        val tok1: String = row.getAs[String](COL_TOKEN_1)
+        val tok2: String = row.getAs[String](COL_TOKEN_2)
+        val count = row.getAs[Long](COL_COUNT)
+        pipe.zincrby(date + ":" + tok1, count, tok2)
+        pipe.expire(date + ":" + tok1, 86400 * 7)
+
+        i += 1
+        if (i > MAX_REDIS_PIPELINE) {
+          pipe.sync()
+          pipe = jedis.pipelined()
+          i = 0
+        }
+      }
+    )
+    pipe.sync()
+    jedis.close()
+  }
+
   def groupedBulkUpdateCounters(tsFieldName: String, tokenFieldName: String, rows: Iterator[Row]): Unit = {
     val jedis = pool.getResource
     var pipe = jedis.pipelined()
