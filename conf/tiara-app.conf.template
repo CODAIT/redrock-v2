@@ -121,6 +121,7 @@ tiara {
         redis-server = ${tiara.decahose-processor.redis-server}
         redis-key-entity = ${tiara.decahose-processor.redis-tweet-entity-token-count}
         prefix-tokens-folder-daily = ${tiara.word-2-vec.prefix-tokens-folder-daily}
+        cache-graph-membership = true
         // in seconds
         membership-graph-expiration = 600
 

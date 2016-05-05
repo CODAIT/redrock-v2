@@ -20,6 +20,7 @@ object ExecuteCommunityGraph extends Logging{
   val objcName = "communities"
   val nodeDescription = Json.obj("node" -> Json.arr("label","id","degree","community","x","y","z"))
   val edgeDescription = Json.obj("edge" -> Json.arr("id", "source", "target", "weight"))
+  val cacheMembership = Config.restapi.getBoolean("cache-graph-membership")
   val cacheExpiration = Config.restapi.getInt("membership-graph-expiration")
 
   def getResults(searchTerms: String, get3Dresults: Boolean = false): Future[String] = {
@@ -55,12 +56,14 @@ object ExecuteCommunityGraph extends Logging{
     val elapsed = (System.nanoTime() - startTime) / 1e9
     logInfo(s"Community Graph finished. Execution time: $elapsed")
 
-    // Cache graph membership in background thread
-    Future{
-      cacheCommunityMembership(searchTerms, results)
-    }.onComplete{
-      case Success(md5) => logInfo(s"Graph menbership computed for search term MD5 $md5")
-      case Failure(t) => logError("Could not cache graph membership", t)
+    if(cacheMembership) {
+      // Cache graph membership in background thread
+      Future {
+        cacheCommunityMembership(searchTerms, results)
+      }.onComplete {
+        case Success(md5) => logInfo(s"Graph menbership computed for search term MD5 $md5")
+        case Failure(t) => logError("Could not cache graph membership", t)
+      }
     }
 
     Json.stringify(response)
