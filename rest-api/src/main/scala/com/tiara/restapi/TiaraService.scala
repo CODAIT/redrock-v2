@@ -65,7 +65,7 @@ trait TiaraService extends HttpService {
         get{
           respondWithMediaType(`application/json`) {
             complete {
-              Utils.getMD5forSearchTerms(searchTerms)
+              ExecuteCommunityDetails.getDetails(searchTerms)
             }
           }
         }
