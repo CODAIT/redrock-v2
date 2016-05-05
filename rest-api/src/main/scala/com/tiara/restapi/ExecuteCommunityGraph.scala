@@ -110,12 +110,14 @@ object ExecuteCommunityGraph extends Logging{
       // Commit to redis every 10k instructions
       if(count == 10000){
         pipe.sync()
+        pipe.close()
         pipe = jedis.pipelined()
         count = 0
       }
     })
 
     pipe.sync()
+    pipe.close()
     jedis.close()
     md5
   }

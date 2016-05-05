@@ -54,7 +54,7 @@ object ExecuteMetricAnalysis extends Logging{
   }
 
   private def getTopHandles(count: Int, jresource: Jedis): JsObject = {
-    logInfo(s"Getting handles: ${InMemoryData.date}:${redisCountKeySuffix}#")
+    logInfo(s"Getting handles: ${InMemoryData.date}:${redisCountKeySuffix}@")
     try {
       val topHandles = jresource.zrevrangeWithScores(s"${InMemoryData.date}:${redisCountKeySuffix}@", 0, count)
       var handles:Array[JsObject] = Array.empty
