@@ -20,6 +20,7 @@ object ExecuteCommunityGraph extends Logging{
   val objcName = "communities"
   val nodeDescription = Json.obj("node" -> Json.arr("label","id","degree","community","x","y","z"))
   val edgeDescription = Json.obj("edge" -> Json.arr("id", "source", "target", "weight"))
+  val cacheExpiration = Config.restapi.getInt("membership-graph-expiration")
 
   def getResults(searchTerms: String, get3Dresults: Boolean = false): Future[String] = {
 
@@ -105,7 +106,10 @@ object ExecuteCommunityGraph extends Logging{
       val community:String = node(1).as[String]
       pipe.sadd(md5,community)
       pipe.lpush(s"$md5:$community", node(0).as[String])
-      count += 1;
+      // Timeline when the cache will be avaiable
+      pipe.expire(md5,cacheExpiration)
+      pipe.expire(s"$md5:$community",cacheExpiration)
+      count += 2;
 
       // Commit to redis every 10k instructions
       if(count == 10000){
