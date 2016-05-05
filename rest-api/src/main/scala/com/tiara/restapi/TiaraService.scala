@@ -28,6 +28,7 @@ trait TiaraService extends HttpService {
   val forceNodeGraph = path("getsynonyms") & parameters('searchterm, 'count.as[Int])
   val communityGraph = path("getcommunities") & parameters('searchterms, 'get3d.as[Boolean])
   val topTerms = path("gettopterms") & parameters('count.as[Int])
+  val communityDetails = path("getcommunitiesdetails") & parameters('searchterms)
 
   val tiaraRoute =
     home {
@@ -56,6 +57,15 @@ trait TiaraService extends HttpService {
           respondWithMediaType(`application/json`) {
             complete {
               ExecuteMetricAnalysis.getTopTerms(count)
+            }
+          }
+        }
+      } ~
+      communityDetails { (searchTerms) =>
+        get{
+          respondWithMediaType(`application/json`) {
+            complete {
+              Utils.getMD5forSearchTerms(searchTerms)
             }
           }
         }

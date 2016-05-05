@@ -2,12 +2,14 @@ package com.tiara.restapi
 
 import org.apache.spark.Logging
 import org.apache.spark.sql.{DataFrame, Row}
-import play.api.libs.json.{JsArray, JsNull, JsObject, Json}
+import play.api.libs.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, future}
 import org.apache.spark.sql.functions._
-
+import Utils._
+import scala.util.{Success, Failure}
+import redis.clients.jedis._
 import scala.concurrent._
 
 /**
@@ -52,6 +54,14 @@ object ExecuteCommunityGraph extends Logging{
     val elapsed = (System.nanoTime() - startTime) / 1e9
     logInfo(s"Community Graph finished. Execution time: $elapsed")
 
+    // Cache graph membership in background thread
+    Future{
+      cacheCommunityMembership(searchTerms, results)
+    }.onComplete{
+      case Success(md5) => logInfo(s"Graph menbership computed for search term MD5 $md5")
+      case Failure(t) => logError("Could not cache graph membership", t)
+    }
+
     Json.stringify(response)
   }
 
@@ -73,6 +83,41 @@ object ExecuteCommunityGraph extends Logging{
     }else{
       response ++ Json.obj(objcName -> result)
     }
+  }
+
+  private def cacheCommunityMembership(searchTerms: String, graph: JsObject):String = {
+    logInfo("Caching graph membership")
+    val md5 = getMD5forSearchTerms(searchTerms)
+    logInfo(s"Search terms MD5: $md5")
+
+    val jedis = ApplicationContext.jedisPool.getResource
+    var pipe = jedis.pipelined()
+
+    if(jedis.exists(md5)){
+      logInfo("Dropping old cache")
+      val keys:Array[String] = jedis.keys(s"$md5*").toArray.map(_.toString)
+      jedis.del(keys:_*)
+    }
+
+    var count = 0
+    val nodes = (graph \ GraphUtils.nodesLabel).as[List[List[JsValue]]]
+    nodes.foreach(node => {
+      val community:String = node(1).as[String]
+      pipe.sadd(md5,community)
+      pipe.lpush(s"$md5:$community", node(0).as[String])
+      count += 1;
+
+      // Commit to redis every 10k instructions
+      if(count == 10000){
+        pipe.sync()
+        pipe = jedis.pipelined()
+        count = 0
+      }
+    })
+
+    pipe.sync()
+    jedis.close()
+    md5
   }
 
 }

@@ -17,6 +17,8 @@ import play.api.libs.json.{JsArray, JsNull, JsObject, Json}
   */
 object GraphUtils {
 
+  val nodesLabel = "nodes"
+
   def randomizeLayout(graph: GraphModel, range: Float, zeroZ: Boolean = true): Unit = {
     for (node <- graph.getGraph.getNodes) {
       node.setX((((0.01 + Math.random()) * range * 2) - range).toFloat)
@@ -90,7 +92,7 @@ object GraphUtils {
     val modCol = graphModel.getNodeTable.getColumn(Modularity.MODULARITY_CLASS)
     val directedGraph = graphModel.getDirectedGraph
 
-    val nodes = Json.obj("nodes" ->
+    val nodes = Json.obj(nodesLabel ->
       JsArray(graphModel.getGraph.getNodes.map(
         (n: Node) =>
           Json.arr(n.getId.toString, n.getStoreId.toString, directedGraph.getDegree(n),
