@@ -113,6 +113,7 @@ object GraphUtils {
 
   def edgeListToFinalJson(edges: Array[(String,String)], zeroZ: Boolean = true): JsObject = {
     val mod = edgeListToGephiModel(edges)
+    println(s"node count: ${mod.getGraph.getNodeCount}, edge count: ${mod.getGraph.getEdgeCount}")
     gephiLayout(mod, zeroZ)
     val modularity: Modularity = new Modularity
     modularity.execute(mod)
