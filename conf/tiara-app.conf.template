@@ -124,6 +124,8 @@ tiara {
         cache-graph-membership = true
         // in seconds
         membership-graph-expiration = 600
+        // Return just hashtag as the synonyms
+        return-only-hashtag-synonyms = true
 
         start-scheduler-after = 0
         // Every 10min

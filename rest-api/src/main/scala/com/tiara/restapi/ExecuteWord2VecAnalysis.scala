@@ -15,6 +15,7 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
   val redisCountKeySufix = Config.restapi.getString("redis-key-entity")
   val objcName = "distance"
   val objDescription = Json.obj("content" -> Json.arr("word", "distance", "frequency"))
+  val onlyHashtags = Config.restapi.getBoolean("return-only-hashtag-synonyms")
 
   def getResults(searchTerm: String, number: Int): Future[String] = {
 
@@ -119,8 +120,16 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
 
   private def getSynonyms(searchTerm: String, number: Int):Array[(String,Double)]={
     try {
-      InMemoryData.word2VecModel.findSynonyms(searchTerm, number)
-        .map(result => (result._1, result._2))
+      if(onlyHashtags){
+        logInfo("Only Hashtag mode")
+        InMemoryData.word2VecModel.findSynonyms(searchTerm, number*3)
+          .filter(syn => syn._1.startsWith("#"))
+          .take(number)
+          .map(result => (result._1, result._2))
+      }else{
+        InMemoryData.word2VecModel.findSynonyms(searchTerm, number)
+          .map(result => (result._1, result._2))
+      }
     } catch {
       case notOnvac:IllegalStateException => {
         logInfo(s"$searchTerm is not on the vocabulary")
