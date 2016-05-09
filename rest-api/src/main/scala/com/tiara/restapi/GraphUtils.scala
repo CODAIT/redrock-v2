@@ -77,6 +77,7 @@ object GraphUtils {
     randomizeLayout(graphModel, 100, zeroZ)
 
     val layout: ForceAtlas3DLayout = new ForceAtlas3DLayout(null)
+    layout.setThreadCount(30)
     layout.setGraphModel(graphModel)
     layout.resetPropertiesValues()
     layout.initAlgo()
