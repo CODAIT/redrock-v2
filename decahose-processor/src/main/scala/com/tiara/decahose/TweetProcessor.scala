@@ -91,6 +91,11 @@ object TweetProcessor extends Logging{
       val enDF = tweetsDF
         .filter(SQL_EN_FILTER)
         .withColumn(COL_POSTED_DATE, postedDate(col("postedTime")))
+        .withColumn(COL_TOKEN_SET, flattenDistinct(array(
+          lowerTwokensNoHttpNoStopNoApostropheNoNumbers(col("body")),
+          lowerTwokensNoHttpNoStopNoApostropheNoNumbers(col("object.body"))
+        )))
+        .withColumn("sentiment", extractSentiment(col(COL_TOKEN_SET)))
 
       enDF.repartition(30)
       enDF.persist(StorageLevel.MEMORY_AND_DISK_SER)
@@ -113,10 +118,7 @@ object TweetProcessor extends Logging{
         .select(
           col(COL_POSTED_DATE),
           col("actor.preferredUsername").as(COL_TWITTER_AUTHOR),
-          flattenDistinct(array(
-            lowerTwokensNoHttpNoStopNoApostropheNoNumbers(col("body")),
-            lowerTwokensNoHttpNoStopNoApostropheNoNumbers(col("object.body"))
-          )).as(COL_TOKEN_SET))
+          col(COL_TOKEN_SET))
         .repartition(90)
 
       dateToksDF.persist(StorageLevel.MEMORY_AND_DISK_SER)

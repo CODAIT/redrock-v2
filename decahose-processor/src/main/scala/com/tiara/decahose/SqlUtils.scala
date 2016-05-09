@@ -24,6 +24,8 @@ object SqlUtils {
   val COL_TOKEN_2 = "tok2"
   val COL_PAIR = "pair"
   val COL_COUNT = "count"
+  val SENTIMENT_CUTOFF = 0.1
+  val WORD_LIST_SCORE = SentiWordList.list
 
   // SQL strings
   val SQL_EN_FILTER = "twitter_lang = 'en'"
@@ -32,7 +34,7 @@ object SqlUtils {
     getClass.getResourceAsStream("/suffixes.2")
   ).getLines().mkString("(","|",")") + """($|\s)"""
 
-  val regexNumber: String = "[0-9]*(:|.|/|-)?[0-9]*$"
+  val regexNumber: String = "[0-9]*(:|.|/|-)?[0-9]*(:|.|/|-)?[0-9]*$"
 
   // stop words, from the assembly jar, packaged from conf dir
   val stopWords: Set[String] = scala.io.Source.fromInputStream(
@@ -120,6 +122,30 @@ object SqlUtils {
   )
   val flattenDistinct = org.apache.spark.sql.functions.udf(
     (it: WrappedArray[WrappedArray[String]]) => it.filter(_ != null).flatten.distinct.filter(_.length>=2)
+  )
+
+  val extractSentiment = org.apache.spark.sql.functions.udf(
+    (it: WrappedArray[String]) => {
+      var sentScore = 0.0
+      var count = 0;
+      it.foreach(word => {
+        WORD_LIST_SCORE.get(word) match {
+          case Some(score) => {
+            sentScore += score.positive
+            sentScore -= score.negative
+            count += 1
+          }
+          case _ =>
+        }
+      })
+      val normalizedScore = sentScore/count
+      // positive
+      if(normalizedScore > SENTIMENT_CUTOFF) 1
+      // negative
+      else if( normalizedScore < -SENTIMENT_CUTOFF) -1
+      // neutral
+      else 0
+    }
   )
 
   //TODO: find a way to close pools/connections when the Spark job gets killed.
@@ -219,5 +245,6 @@ object SqlUtils {
     pipe.sync()
     jedis.close()
   }
+
 
 }
