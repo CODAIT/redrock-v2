@@ -95,7 +95,7 @@ object TweetProcessor extends Logging{
           lowerTwokensNoHttpNoStopNoApostropheNoNumbers(col("body")),
           lowerTwokensNoHttpNoStopNoApostropheNoNumbers(col("object.body"))
         )))
-        .withColumn("sentiment", extractSentiment(col(COL_TOKEN_SET)))
+        .withColumn(COL_SENTIMENT, extractSentiment(col(COL_TOKEN_SET)))
 
       enDF.repartition(30)
       enDF.persist(StorageLevel.MEMORY_AND_DISK_SER)

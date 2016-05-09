@@ -22,6 +22,7 @@ tiara {
         post-date-col-name = "postedDate"
         tokens-column = "toks"
         redis-tweet-entity-token-count = "ES"
+        sentiment-column = "sentiment"
 
         update-redis-counters = true
         redis-server = "localhost"
