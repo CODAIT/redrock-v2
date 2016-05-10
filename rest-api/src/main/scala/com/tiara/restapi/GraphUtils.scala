@@ -82,7 +82,7 @@ object GraphUtils {
     layout.resetPropertiesValues()
     layout.initAlgo()
     var i: Int = 0
-    while (i < 10 && layout.canAlgo) {
+    while (i < 150 && layout.canAlgo) {
       layout.goAlgo()
       i += 1
     }
