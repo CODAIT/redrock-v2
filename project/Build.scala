@@ -177,7 +177,13 @@ object TiaraBuild extends Build{
       fork := true,
       connectInput in run := true,
       scalastyleConfig in Compile :=  file(".") / "project" / "scalastyle-config.xml",
-      assemblyJarName in assembly := "tiara-restapi.jar"
+      assemblyJarName in assembly := "tiara-restapi.jar",
+      assemblyMergeStrategy in assembly := {
+        case PathList("org", "joda", "time",xs @ _*) => MergeStrategy.last
+        case x =>
+          val oldStrategy = (assemblyMergeStrategy in assembly).value
+          oldStrategy(x)
+      }
     ))
 
   lazy val decahoseProcessor = Project(
