@@ -122,7 +122,8 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
     try {
       if(onlyHashtags){
         logInfo("Only Hashtag mode")
-        InMemoryData.word2VecModel.findSynonyms(searchTerm, number*3)
+        // Testing shows that 'findSynonyms' is very fast, even when returning a large number of results
+        InMemoryData.word2VecModel.findSynonyms(searchTerm, number*20)
           .filter(syn => syn._1.startsWith("#"))
           .take(number)
           .map(result => (result._1, result._2))
