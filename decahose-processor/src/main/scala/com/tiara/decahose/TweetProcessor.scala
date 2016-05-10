@@ -97,7 +97,7 @@ object TweetProcessor extends Logging{
         )))
         .withColumn(COL_SENTIMENT, extractSentiment(col(COL_TOKEN_SET)))
 
-      enDF.repartition(30)
+      enDF.repartition(50)
       enDF.persist(StorageLevel.MEMORY_AND_DISK_SER)
 
       val dfWriter = enDF
