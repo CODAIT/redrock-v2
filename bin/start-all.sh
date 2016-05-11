@@ -18,6 +18,10 @@
 # using environment variable to find Tiara home directory
 if [ -z "$TIARA_HOME" ]; then echo "TIARA_HOME is NOT set"; else echo "TIARA_HOME defined as '$TIARA_HOME'"; fi
 
+echo "========= Starting Decahose =========="
+
+$TIARA_HOME/bin/start-pollDecahose.sh
+
 echo "========= Starting Word2Vec model Generation =========="
 
 $TIARA_HOME/bin/start-word2vec.sh

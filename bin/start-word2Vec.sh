@@ -24,11 +24,10 @@ if [ -z "$TIARA_HOME" ]; then echo "TIARA_HOME is NOT set"; else echo "TIARA_HOM
 # generates the new .jar considering new configurations.
 # Run this command separated on cluster, before push code to all nodes. Comment it out on cluster
 echo " ==========  Compiling code and generating .jar ============"
-sbt compile
 sbt 'project tiara-word2vec' assembly
 
 # Changes the location where spark is being launched so it creates its own metastore_db
-cd $TIARA_HOME/decahose-processor
+cd $TIARA_HOME/word2vec-models
 
 echo "============ Running Word2vec =============="
 #run program on cluster
