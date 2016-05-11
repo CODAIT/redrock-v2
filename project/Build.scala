@@ -155,7 +155,7 @@ object TiaraBuild extends Build{
   lazy val parent = Project(
     id = "tiara-parent",
     base = file("."),
-    aggregate = Seq(restapi, decahoseProcessor),
+    aggregate = Seq(restapi, decahoseProcessor, word2vecModelGeneration, decahosePollActor),
     settings = rootbuildSettings ++ Seq(
       aggregate in update := false,
       scalastyleConfig in Compile :=  file(".") / "project" / "scalastyle-config.xml"
