@@ -1,10 +1,16 @@
 package com.tiara.restapi
 
 import java.security.MessageDigest
+
+import scala.collection.mutable.WrappedArray
+
 /**
  * Created by barbaragomes on 5/4/16.
  */
 object Utils {
+
+  val COL_SENTIMENT = Config.restapi.getString("sentiment-column-name")
+  val COL_TOKENS = Config.restapi.getString("tokens-column-name")
 
   def md5(bytes: Array[Byte]): String = {
     val digest = MessageDigest.getInstance("MD5")
@@ -20,4 +26,10 @@ object Utils {
     scala.util.Sorting.quickSort(terms)
     md5(terms.mkString(",").getBytes)
   }
+
+  val stringTokens = org.apache.spark.sql.functions.udf(
+    (tokens: WrappedArray[String]) => {
+        tokens.mkString(" ")
+    })
+
 }

@@ -9,6 +9,7 @@ import org.apache.hadoop.fs.Path
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.apache.spark.sql.functions._
+import Utils._
 /**
  * Created by barbaragomes on 4/19/16.
  */
@@ -46,11 +47,16 @@ class UpdateWord2VecModel extends Actor with Logging{
         // InMemoryData.frequency = ApplicationContext.sqlContext.read.parquet(s"$modelPath/$freqFolder")
         val newRTDF = ApplicationContext.sqlContext.read.parquet(s"$englishPath/$newModelName")
                                   .filter("verb = 'share'")
+                                  .withColumn("stringtoks", stringTokens(col(COL_TOKENS)))
                                   .select(col("actor.preferredUsername").as("uid"),
                                           col("object.actor.preferredUsername").as("ouid"),
-                                          col("actor.followersCount"),
-                                          col("gnip.klout_score"),
-                                          col("object.body"))
+                                          /* Since the community graph will be filtered by the results
+                                           * from the word2vec models, and the word2vec model is computed
+                                           * using only the tokens, we don't need to use the tweet body,
+                                           * we can use a string built from the tokens (less data in memory)
+                                           */
+                                          col("stringtoks").as(COL_TOKENS),
+                                          col(COL_SENTIMENT))
         // Change in memory DF
         if (InMemoryData.retweetsENDF != null) InMemoryData.retweetsENDF.unpersist(true)
         InMemoryData.retweetsENDF = newRTDF
