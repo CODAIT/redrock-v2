@@ -73,8 +73,11 @@ object ExecuteCommunityDetails extends Logging{
 
       // Get sentiment
       val sentimentResponse:JsValue = extractSentiment(membershipRT_DF)
+      
+      membershipRT_DF.unpersist(false)
 
       Json.stringify(buildResponse(true,sentimentResponse,JsNull))
+
     }else{
       logInfo(s"No cached data for search: $searchTerms == MD5 $md5")
       Json.stringify(buildResponse(false,Json.obj(),Json.obj()))
