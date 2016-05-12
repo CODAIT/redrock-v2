@@ -94,7 +94,7 @@ object ExecuteCommunityDetails extends Logging{
         .agg(count("sentiment").as("count"))
         .map(row => (row.getString(0), (row.getInt(1), row.getLong(2).toInt)))
         .groupByKey
-      logInfo("Groupped")
+
       // Json.ojb(CommunityID -> Json.Array[count of positive, count of negative, count of neutral])
       val mapToJson: Array[JsObject] = sentiment.map(community_sentiment => {
         Json.obj(community_sentiment._1 ->
@@ -102,9 +102,6 @@ object ExecuteCommunityDetails extends Logging{
             community_sentiment._2.find { case (sent: Int, count: Int) => (sent, count) ==(-1, count) }.getOrElse((0, 0))._2,
             community_sentiment._2.find { case (sent: Int, count: Int) => (sent, count) ==(0, count) }.getOrElse((0, 0))._2))
       }).collect
-
-      logInfo("Mapped to JSON")
-      logInfo(s"count ${mapToJson.length}")
 
       val elapsed = (System.nanoTime() - startTime) / 1e9
       logInfo(s"Extract sentiment finished. Execution time: $elapsed")
