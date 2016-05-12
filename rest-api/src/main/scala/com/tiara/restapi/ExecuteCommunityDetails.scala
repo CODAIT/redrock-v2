@@ -29,7 +29,7 @@ object ExecuteCommunityDetails extends Logging{
     val result = future {computeDetails(searchTerms.toLowerCase(),md5)}
 
     result.recover{
-      case e: Exception => logError("Could not execute request.", e); Json.stringify(buildResponse(false,JsNull,JsNull))
+      case e: Exception => logError("Could not execute request.", e); Json.stringify(buildResponse(false,null,null))
     }
   }
 
@@ -37,7 +37,7 @@ object ExecuteCommunityDetails extends Logging{
     try{
       detailsFromJoin(md5, searchTerms)
     }catch {
-      case e: Exception => logError("Could not get Details for community", e); Json.stringify(buildResponse(false,JsNull,JsNull))
+      case e: Exception => logError("Could not get Details for community", e); Json.stringify(buildResponse(false,null,null))
     }
   }
 
@@ -72,19 +72,19 @@ object ExecuteCommunityDetails extends Logging{
       val membershipRT_DF = filteredRT.join(membershipDF, filteredRT("uid") === membershipDF("uid")).cache()
 
       // Get sentiment
-      val sentimentResponse:JsValue = extractSentiment(membershipRT_DF)
-      
+      val sentimentResponse:Array[JsObject] = extractSentiment(membershipRT_DF)
+
       membershipRT_DF.unpersist(false)
 
-      Json.stringify(buildResponse(true,sentimentResponse,JsNull))
+      Json.stringify(buildResponse(true,sentimentResponse,Array.empty))
 
     }else{
       logInfo(s"No cached data for search: $searchTerms == MD5 $md5")
-      Json.stringify(buildResponse(false,Json.obj(),Json.obj()))
+      Json.stringify(buildResponse(false,Array.empty,Array.empty))
     }
   }
 
-  private def extractSentiment(membershipDF: DataFrame): JsValue = {
+  private def extractSentiment(membershipDF: DataFrame): Array[JsObject] = {
 
     try {
       val startTime = System.nanoTime()
@@ -94,25 +94,25 @@ object ExecuteCommunityDetails extends Logging{
         .agg(count("sentiment").as("count"))
         .map(row => (row.getString(0), (row.getInt(1), row.getLong(2).toInt)))
         .groupByKey
-
+      logInfo("Groupped")
       // Json.ojb(CommunityID -> Json.Array[count of positive, count of negative, count of neutral])
-      val mapToJson = sentiment.map(community_sentiment => {
+      val mapToJson: Array[JsObject] = sentiment.map(community_sentiment => {
         Json.obj(community_sentiment._1 ->
           Json.arr(community_sentiment._2.find { case (sent: Int, count: Int) => (sent, count) ==(1, count) }.getOrElse((0, 0))._2,
             community_sentiment._2.find { case (sent: Int, count: Int) => (sent, count) ==(-1, count) }.getOrElse((0, 0))._2,
             community_sentiment._2.find { case (sent: Int, count: Int) => (sent, count) ==(0, count) }.getOrElse((0, 0))._2))
       }).collect
 
-      var jsonResponse = Json.obj()
-      mapToJson.foreach(communityData => jsonResponse = jsonResponse ++ communityData)
+      logInfo("Mapped to JSON")
+      logInfo(s"count ${mapToJson.length}")
 
       val elapsed = (System.nanoTime() - startTime) / 1e9
       logInfo(s"Extract sentiment finished. Execution time: $elapsed")
 
-      jsonResponse
+      mapToJson
     }
     catch {
-      case e: Exception => logError("Could not extract sentiment", e); JsNull
+      case e: Exception => logError("Could not extract sentiment", e); null
     }
 
   }
@@ -132,10 +132,10 @@ object ExecuteCommunityDetails extends Logging{
       membership.append((communityID,users))
   }
 
-  private def buildResponse(success: Boolean, sentimentJson: JsValue, wordcloudJson: JsValue):JsObject = {
+  private def buildResponse(success: Boolean, sentimentJson: Array[JsObject], wordcloudJson: Array[JsObject]):JsObject = {
     Json.obj("success" -> success) ++
       sentimentDescription ++ worldcloud ++
-      Json.obj("communitydetails" -> (Json.obj(sentiment -> sentimentJson)
-        ++ Json.obj(wordcloud -> wordcloudJson)))
+      Json.obj("communitydetails" -> (Json.obj(sentiment -> (if(sentimentJson == null) JsNull else sentimentJson))
+        ++ Json.obj(wordcloud -> (if(wordcloudJson == null) JsNull else wordcloudJson))))
   }
 }
