@@ -89,6 +89,86 @@ object GraphUtils {
     layout.endAlgo()
   }
 
+  def gephiLayout2(
+                    graphModel: GraphModel,
+                    zeroZ: Boolean,
+                    maxIteration: Int,
+                    maxTime: Int,
+                    descentCountThreshold: Int,
+                    speedDescentThreshold: Double
+                  ): Unit = {
+    randomizeLayout(graphModel, 100, zeroZ)
+
+    val layout: ForceAtlas3DLayout = new ForceAtlas3DLayout(null)
+    layout.setThreadCount(30)
+    layout.setGraphModel(graphModel)
+    layout.resetPropertiesValues()
+    layout.initAlgo()
+    val startTime = System.currentTimeMillis();
+    var i: Int = 0
+    var initSpeed: Double = 0
+    var maxSpeed: Double = 0
+    var maxIndex: Int = -1
+    var descentCount: Int = 0
+//    val speedPipe: java.util.Vector[Double] = ()
+    while (i < maxIteration && layout.canAlgo && System.currentTimeMillis() < startTime + maxTime) {
+      layout.goAlgo()
+
+      if (i==0) {initSpeed = layout.speed}
+//      speedPipe.add(layout.speed)
+//      if (speedPipe.size > pipeLength) {speedPipe.remove(0)}
+      if (layout.speed > maxSpeed) {
+        maxSpeed = layout.speed
+        maxIndex = i
+      }
+      if (layout.speed < maxSpeed / speedDescentThreshold && i > maxIndex) {
+        descentCount += 1
+      }
+      if (descentCount >= descentCountThreshold) {return}
+
+      i += 1
+    }
+    layout.endAlgo()
+  }
+
+  def getLayoutJsonForFile(
+                            graphFile: String,
+                            separator: String = ",",
+                            zeroZ: Boolean = true,
+                            maxIter: Int = 300,
+                            maxTime: Int = 300000,
+                            descentCountThreshold: Int = 3,
+                            speedDescentThreshold: Double = 3.0
+                          ): String = {
+    val edges = scala.io.Source.fromFile(graphFile).getLines().toArray.map{
+      (line: String) =>
+        val toks = line.split(separator)
+        new Tuple2(toks(0), toks(1))
+    }
+    val graphModel = edgeListToGephiModel(edges)
+    val directedGraph = graphModel.getDirectedGraph
+    gephiLayout2(graphModel, zeroZ, maxIter, maxTime, descentCountThreshold, speedDescentThreshold)
+
+    val nodesJs = Json.obj(nodesLabel ->
+      JsArray(graphModel.getGraph.getNodes.map(
+        (n: Node) =>
+          Json.arr(n.getId.toString, n.getStoreId.toString,
+            n.x, n.y, n.z)
+      ).toSeq)
+    )
+
+    val edgesJs = Json.obj("edges" ->
+      JsArray(graphModel.getGraph.getEdges.map(
+        (e: Edge) =>
+          Json.arr(e.getTarget.getId.toString, e.getSource.getStoreId.toString,
+            e.getTarget.getStoreId.toString, e.getWeight.toString)
+      ).toSeq)
+    )
+
+    Json.prettyPrint(nodesJs ++ edgesJs)
+
+  }
+
   def modelToJson(graphModel: GraphModel): JsObject = {
     val modCol = graphModel.getNodeTable.getColumn(Modularity.MODULARITY_CLASS)
     val directedGraph = graphModel.getDirectedGraph
