@@ -39,4 +39,10 @@ object Utils {
       tokens.split(TOKENS_SEPARATOR)
     })
 
+
+  val excludeHandles = org.apache.spark.sql.functions.udf(
+    (word: String) => {
+      !word.startsWith("@")
+    })
+
 }

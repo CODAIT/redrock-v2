@@ -129,6 +129,7 @@ object ExecuteCommunityDetails extends Logging{
       //If the column toks is also stored as a array we can skip the call to the tokensFromString UDF
       val explodeByTokens = membershipDF.withColumn("tokensArray", tokensFromString(col(COL_TOKENS)))
                     .select(col("community"), explode(col("tokensArray")).as("word"))
+                    .filter(excludeHandles(col("word")))
 
       val aggToJson = explodeByTokens.groupBy("community", "word").agg(count("word").as("count"))
         .map(row => (row.getString(0), (row.getString(1), row.getLong(2).toInt)))
