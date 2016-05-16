@@ -26,7 +26,7 @@ trait TiaraService extends HttpService {
 
   val home = pathPrefix("tiara")
   val forceNodeGraph = path("getsynonyms") & parameters('searchterm, 'count.as[Int])
-  val communityGraph = path("getcommunities") & parameters('searchterms, 'get3d.as[Boolean])
+  val communityGraph = path("getcommunities") & parameters('searchterms, 'get3d.as[Boolean], 'top.as[Int])
   val topTerms = path("gettopterms") & parameters('count.as[Int])
   val communityDetails = path("getcommunitiesdetails") & parameters('searchterms, 'count.as[Int])
   val gephiLayoutService = path("gephi-layout") & parameters('graph)
@@ -44,11 +44,11 @@ trait TiaraService extends HttpService {
           }
         }
       } ~
-      communityGraph { (searchTerms, get3D) =>
+      communityGraph { (searchTerms, get3D, top) =>
         get{
           respondWithMediaType(`application/json`) {
             complete {
-              ExecuteCommunityGraph.getResults(searchTerms,get3D)
+              ExecuteCommunityGraph.getResults(searchTerms,top,get3D)
             }
           }
         }

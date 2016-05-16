@@ -169,13 +169,13 @@ object GraphUtils {
 
   }
 
-  def modelToJson(graphModel: GraphModel): JsObject = {
+  def modelToJson(graphModel: GraphModel,top: Int): JsObject = {
     val modCol = graphModel.getNodeTable.getColumn(Modularity.MODULARITY_CLASS)
     // generate a list of communities sorted by descending order of their node sizes
     val mods = graphModel.getGraph.getNodes.map( _.getAttribute(modCol).toString )
     val modsSizes = mods.groupBy(identity).mapValues(_.size)
     // take only the top 10 communities
-    val topK = modsSizes.toSeq.sortBy(-_._2).slice(0, 10).map(_._1).toSet
+    val topK = modsSizes.toSeq.sortBy(-_._2).slice(0, top).map(_._1).toSet
     val directedGraph = graphModel.getDirectedGraph
 
     val nodes = Json.obj(nodesLabel ->
@@ -203,13 +203,13 @@ object GraphUtils {
     nodes ++ edges
   }
 
-  def edgeListToFinalJson(edges: Array[(String,String)], zeroZ: Boolean = true): JsObject = {
+  def edgeListToFinalJson(edges: Array[(String,String)], top: Int, zeroZ: Boolean = true): JsObject = {
     val mod = edgeListToGephiModel(edges)
     println(s"node count: ${mod.getGraph.getNodeCount}, edge count: ${mod.getGraph.getEdgeCount}")
     gephiLayout(mod, zeroZ)
     val modularity: Modularity = new Modularity
     modularity.execute(mod)
-    modelToJson(mod)
+    modelToJson(mod, top)
   }
 
   def TestMain(args: Array[String]) = {
@@ -227,7 +227,7 @@ object GraphUtils {
     val modularity: Modularity = new Modularity
     modularity.execute(mod)
 
-    println(Json.prettyPrint(modelToJson(mod)))
+    println(Json.prettyPrint(modelToJson(mod,10)))
   }
 
 }
