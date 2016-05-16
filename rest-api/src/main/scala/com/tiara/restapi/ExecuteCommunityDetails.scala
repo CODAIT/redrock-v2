@@ -3,12 +3,11 @@ package com.tiara.restapi
 import org.apache.spark.Logging
 import org.apache.spark.sql.{DataFrame, Row}
 import play.api.libs.json._
-import Utils._
 import redis.clients.jedis.Jedis
 import org.apache.spark.sql.functions._
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
-
+import Utils._
 import scala.concurrent._
 
 /**
@@ -21,29 +20,31 @@ object ExecuteCommunityDetails extends Logging{
   val sentimentDescription = Json.obj(sentiment -> Json.obj("communityID" -> Json.arr("positive", "negative", "neutral")))
   val worldcloud = Json.obj(wordcloud -> Json.obj("communityID" -> Json.arr("word", "count")))
 
-  def getDetails(searchTerms: String): Future[String] = {
+  def getDetails(searchTerms: String, count: Int): Future[String] = {
 
     logInfo(s"Get community graph details with search: $searchTerms.")
     val md5 = getMD5forSearchTerms(searchTerms)
 
-    val result = future {computeDetails(searchTerms.toLowerCase(),md5)}
+    val result = future {computeDetails(searchTerms.toLowerCase(),md5, count)}
 
     result.recover{
       case e: Exception => logError("Could not execute request.", e); Json.stringify(buildResponse(false,null,null))
     }
   }
 
-  private def computeDetails(searchTerms: String, md5: String):String = {
+  private def computeDetails(searchTerms: String, md5: String, count: Int):String = {
     try{
-      detailsFromJoin(md5, searchTerms)
+      getDetailsForCommunities(md5, searchTerms, count)
     }catch {
       case e: Exception => logError("Could not get Details for community", e); Json.stringify(buildResponse(false,null,null))
     }
   }
 
-  private def detailsFromJoin(md5: String, searchTerms: String): String = {
+  private def getDetailsForCommunities(md5: String, searchTerms: String, count: Int): String = {
     //get Resource
     val jedis = ApplicationContext.jedisPool.getResource
+
+    import ApplicationContext.sqlContext.implicits._
 
     logInfo("Loading membership from redis")
     // Get communities from redis
@@ -59,7 +60,6 @@ object ExecuteCommunityDetails extends Logging{
         populateMembership(membership, communityID, users)
       }
 
-      import ApplicationContext.sqlContext.implicits._
       //Get membership as DF
       val membershipDF = ApplicationContext.sparkContext
                           .parallelize(membership).toDF
@@ -69,14 +69,18 @@ object ExecuteCommunityDetails extends Logging{
 
       val filteredRT = getFilteredRT(searchTerms)
       logInfo("Joining membership DF to Retweets DF")
+      // OBS: I think the join should be looking also to the OUID column of the filtered tweets
+      // Somenthing like (filteredRT("uid") === membershipDF("uid") || filteredRT("ouid") === membershipDF("uid"))
+      // Because the nodes list from the community graph includes users that was retweeted
       val membershipRT_DF = filteredRT.join(membershipDF, filteredRT("uid") === membershipDF("uid")).cache()
 
       // Get sentiment
       val sentimentResponse:Array[JsObject] = extractSentiment(membershipRT_DF)
+      val wordcloudResponse:Array[JsObject] = extractWordCloud(membershipRT_DF, count)
 
       membershipRT_DF.unpersist(false)
 
-      Json.stringify(buildResponse(true,sentimentResponse,Array.empty))
+      Json.stringify(buildResponse(true,sentimentResponse,wordcloudResponse))
 
     }else{
       logInfo(s"No cached data for search: $searchTerms == MD5 $md5")
@@ -88,7 +92,6 @@ object ExecuteCommunityDetails extends Logging{
 
     try {
       val startTime = System.nanoTime()
-
       logInfo("Extracting sentiment")
       val sentiment = membershipDF.groupBy("community", "sentiment")
         .agg(count("sentiment").as("count"))
@@ -112,6 +115,39 @@ object ExecuteCommunityDetails extends Logging{
       case e: Exception => logError("Could not extract sentiment", e); null
     }
 
+  }
+
+  private def extractWordCloud(membershipDF: DataFrame, top: Int): Array[JsObject] = {
+    try{
+      // override ordering to sort in descending order
+      implicit object ReverseLongOrdering extends Ordering[Int] {
+        def compare(x: Int, y: Int) = -1 * x.compareTo(y)
+      }
+
+      logInfo("Extracting word cloud")
+      val startTime = System.nanoTime()
+      //If the column toks is also stored as a array we can skip the call to the tokensFromString UDF
+      val explodeByTokens = membershipDF.withColumn("tokensArray", tokensFromString(col(COL_TOKENS)))
+                    .select(col("community"), explode(col("tokensArray")).as("word"))
+
+      val aggToJson = explodeByTokens.groupBy("community", "word").agg(count("word").as("count"))
+        .map(row => (row.getString(0), (row.getString(1), row.getLong(2).toInt)))
+        .groupByKey
+        .map{case (id: String, wordcount:Iterable[(String,Int)]) => {
+          val sorted = (wordcount.toArray.sortBy{case (word,count) => count}(ReverseLongOrdering))
+                        .take(top)
+                        .map{ case (word,count) => Json.arr(word,count)}
+          Json.obj(id -> sorted)
+        }}.collect()
+
+      val elapsed = (System.nanoTime() - startTime) / 1e9
+      logInfo(s"Extract wordcloud finished. Execution time: $elapsed")
+
+      aggToJson
+
+    }catch{
+      case e: Exception => logError("Could not extratc word cloud", e); null
+    }
   }
 
   private def getFilteredRT(searchTerms: String): DataFrame = {

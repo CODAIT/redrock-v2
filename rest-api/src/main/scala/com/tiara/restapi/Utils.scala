@@ -11,6 +11,7 @@ object Utils {
 
   val COL_SENTIMENT = Config.restapi.getString("sentiment-column-name")
   val COL_TOKENS = Config.restapi.getString("tokens-column-name")
+  val TOKENS_SEPARATOR = " "
 
   def md5(bytes: Array[Byte]): String = {
     val digest = MessageDigest.getInstance("MD5")
@@ -29,7 +30,13 @@ object Utils {
 
   val stringTokens = org.apache.spark.sql.functions.udf(
     (tokens: WrappedArray[String]) => {
-        tokens.mkString(" ")
+        tokens.mkString(TOKENS_SEPARATOR)
+    })
+
+
+  val tokensFromString = org.apache.spark.sql.functions.udf(
+    (tokens: String) => {
+      tokens.split(TOKENS_SEPARATOR)
     })
 
 }
