@@ -91,10 +91,17 @@ object GraphUtils {
 
   def modelToJson(graphModel: GraphModel): JsObject = {
     val modCol = graphModel.getNodeTable.getColumn(Modularity.MODULARITY_CLASS)
+    // generate a list of communities sorted by descending order of their node sizes
+    val mods = graphModel.getGraph.getNodes.map( _.getAttribute(modCol).toString )
+    val modsSizes = mods.groupBy(identity).mapValues(_.size)
+    // take only the top 10 communities
+    val topK = modsSizes.toSeq.sortBy(-_._2).slice(0, 10).map(_._1).toSet
     val directedGraph = graphModel.getDirectedGraph
 
     val nodes = Json.obj(nodesLabel ->
-      JsArray(graphModel.getGraph.getNodes.map(
+      JsArray(graphModel.getGraph.getNodes.filter(
+        (n: Node) => topK.contains(n.getAttribute(modCol).toString)
+      ).map(
         (n: Node) =>
           Json.arr(n.getId.toString, n.getStoreId.toString, directedGraph.getDegree(n),
               n.getAttribute(modCol).toString, n.x, n.y, n.z)
@@ -102,7 +109,11 @@ object GraphUtils {
     )
 
     val edges = Json.obj("edges" ->
-      JsArray(graphModel.getGraph.getEdges.map(
+      JsArray(graphModel.getGraph.getEdges.filter(
+        (e: Edge) =>
+          topK.contains(e.getSource.getAttribute(modCol).toString)
+            && topK.contains(e.getTarget.getAttribute(modCol).toString)
+      ).map(
         (e: Edge) =>
           Json.arr(e.getTarget.getId.toString, e.getSource.getStoreId.toString,
             e.getTarget.getStoreId.toString, e.getWeight.toString)
