@@ -108,7 +108,7 @@ object ExecuteCommunityGraph extends Logging{
     var count = 0
     val nodes = (graph \ GraphUtils.nodesLabel).as[List[List[JsValue]]]
     nodes.foreach(node => {
-      val community:String = node(1).as[String]
+      val community:String = node(3).as[String]
       pipe.sadd(md5,community)
       pipe.lpush(s"$md5:$community", node(0).as[String])
       // Timeline when the cache will be avaiable
