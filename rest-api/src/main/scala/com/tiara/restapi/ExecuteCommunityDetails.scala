@@ -75,8 +75,8 @@ object ExecuteCommunityDetails extends Logging{
       val membershipRT_DF = filteredRT.join(membershipDF, filteredRT("uid") === membershipDF("uid")).cache()
 
       // Get sentiment
-      val sentimentResponse:Array[JsObject] = extractSentiment(membershipRT_DF)
-      val wordcloudResponse:Array[JsObject] = extractWordCloud(membershipRT_DF, count)
+      val sentimentResponse:JsObject = extractSentiment(membershipRT_DF)
+      val wordcloudResponse:JsObject = extractWordCloud(membershipRT_DF, count)
 
       membershipRT_DF.unpersist(false)
 
@@ -84,11 +84,11 @@ object ExecuteCommunityDetails extends Logging{
 
     }else{
       logInfo(s"No cached data for search: $searchTerms == MD5 $md5")
-      Json.stringify(buildResponse(false,Array.empty,Array.empty))
+      Json.stringify(buildResponse(false,Json.obj(),Json.obj()))
     }
   }
 
-  private def extractSentiment(membershipDF: DataFrame): Array[JsObject] = {
+  private def extractSentiment(membershipDF: DataFrame): JsObject = {
 
     try {
       val startTime = System.nanoTime()
@@ -108,8 +108,8 @@ object ExecuteCommunityDetails extends Logging{
 
       val elapsed = (System.nanoTime() - startTime) / 1e9
       logInfo(s"Extract sentiment finished. Execution time: $elapsed")
-
-      mapToJson
+        
+      mapToJson.fold(Json.obj())((obj1,obj2) => obj1++obj2)
     }
     catch {
       case e: Exception => logError("Could not extract sentiment", e); null
@@ -117,7 +117,7 @@ object ExecuteCommunityDetails extends Logging{
 
   }
 
-  private def extractWordCloud(membershipDF: DataFrame, top: Int): Array[JsObject] = {
+  private def extractWordCloud(membershipDF: DataFrame, top: Int): JsObject = {
     try{
       // override ordering to sort in descending order
       implicit object ReverseLongOrdering extends Ordering[Int] {
@@ -144,7 +144,7 @@ object ExecuteCommunityDetails extends Logging{
       val elapsed = (System.nanoTime() - startTime) / 1e9
       logInfo(s"Extract wordcloud finished. Execution time: $elapsed")
 
-      aggToJson
+      aggToJson.fold(Json.obj())((obj1,obj2) => obj1++obj2)
 
     }catch{
       case e: Exception => logError("Could not extratc word cloud", e); null
@@ -166,7 +166,7 @@ object ExecuteCommunityDetails extends Logging{
       membership.append((communityID,users))
   }
 
-  private def buildResponse(success: Boolean, sentimentJson: Array[JsObject], wordcloudJson: Array[JsObject]):JsObject = {
+  private def buildResponse(success: Boolean, sentimentJson: JsObject, wordcloudJson: JsObject):JsObject = {
     Json.obj("success" -> success) ++
       sentimentDescription ++ worldcloud ++
       Json.obj("communitydetails" -> (Json.obj(sentiment -> (if(sentimentJson == null) JsNull else sentimentJson))
