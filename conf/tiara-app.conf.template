@@ -119,6 +119,9 @@ tiara {
         folder-name-model = ${tiara.word-2-vec.folder-name-model}
         folder-name-word-count = ${tiara.word-2-vec.folder-name-word-count}
 
+        sentiment-column-name = ${tiara.decahose-processor.sentiment-column}
+        tokens-column-name = ${tiara.decahose-processor.tokens-column}
+
         redis-server = ${tiara.decahose-processor.redis-server}
         redis-key-entity = ${tiara.decahose-processor.redis-tweet-entity-token-count}
         prefix-tokens-folder-daily = ${tiara.word-2-vec.prefix-tokens-folder-daily}

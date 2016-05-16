@@ -39,9 +39,11 @@ object ExecuteCommunityGraph extends Logging{
   private def getCommunityGraphForVisualization(searchTerms: String, get3Dresults: Boolean): String = {
     val startTime = System.nanoTime()
     logInfo("Filtering RT dataframe")
-    //Get filtered retweets
-    val filterRegex = s"(${searchTerms.trim.replaceAll(",","|")})"
-    val filteredDF = InMemoryData.retweetsENDF.filter(col("body").rlike(filterRegex))
+    /* Using white space between the terms in order to avoid matches like: #go => #going
+     * Match should be a complete match: #go only matches #go
+     */
+    val filterRegex = s"(${searchTerms.trim.replaceAll(","," | ")} )"
+    val filteredDF = InMemoryData.retweetsENDF.filter(col(COL_TOKENS).rlike(filterRegex))
 
     var results: JsObject = null
     var success:Boolean = false;
@@ -61,7 +63,7 @@ object ExecuteCommunityGraph extends Logging{
       Future {
         cacheCommunityMembership(searchTerms, results)
       }.onComplete {
-        case Success(md5) => logInfo(s"Graph menbership computed for search term MD5 $md5")
+        case Success(md5) => logInfo(s"Graph membership computed for search term MD5 $md5")
         case Failure(t) => logError("Could not cache graph membership", t)
       }
     }
