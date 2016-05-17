@@ -70,7 +70,7 @@ trait TiaraService extends HttpService {
             }
           }
         }
-      }
+      } ~
       gephiLayoutService { (graph) =>
         get{
           respondWithMediaType(`application/json`) {
