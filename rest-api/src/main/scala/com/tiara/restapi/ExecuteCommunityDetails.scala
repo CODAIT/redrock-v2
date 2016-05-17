@@ -79,6 +79,7 @@ object ExecuteCommunityDetails extends Logging{
       val wordcloudResponse:JsObject = extractWordCloud(membershipRT_DF, count)
 
       membershipRT_DF.unpersist(false)
+      jedis.close()
 
       Json.stringify(buildResponse(true,sentimentResponse,wordcloudResponse))
 

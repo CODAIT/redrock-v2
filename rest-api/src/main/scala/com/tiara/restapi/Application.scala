@@ -31,6 +31,13 @@ import scala.concurrent.duration._
  */
 object Application extends App with Logging {
 
+  /* Closing Jedis connection pool when shutting down application */
+  sys.addShutdownHook{
+    logInfo("Exiting JVM")
+    logInfo("Closing Jedis Pool")
+    ApplicationContext.jedisPool.destroy()
+  }
+
   implicit val system = ActorSystem("restapi-actor")
   val monitorModels = system.actorOf(UpdateWord2VecModel.props)
   monitorModels ! UpdateWord2VecModel.StartMonitoringWord2VecModels
