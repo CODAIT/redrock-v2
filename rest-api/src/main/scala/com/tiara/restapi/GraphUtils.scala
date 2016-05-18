@@ -157,15 +157,7 @@ object GraphUtils {
       ).toSeq)
     )
 
-    val edgesJs = Json.obj("edges" ->
-      JsArray(graphModel.getGraph.getEdges.map(
-        (e: Edge) =>
-          Json.arr(e.getTarget.getId.toString, e.getSource.getStoreId.toString,
-            e.getTarget.getStoreId.toString, e.getWeight.toString)
-      ).toSeq)
-    )
-
-    Json.prettyPrint(nodesJs ++ edgesJs)
+    Json.prettyPrint(nodesJs)
 
   }
 
