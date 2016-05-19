@@ -1,5 +1,7 @@
 package com.tiara.restapi
 
+import org.gephi.filters.plugin.graph.DegreeRangeBuilder.DegreeRangeFilter
+import org.gephi.filters.plugin.graph.KCoreBuilder.KCoreFilter
 import org.gephi.statistics.plugin.Modularity
 
 import scala.collection.JavaConversions._
@@ -198,7 +200,19 @@ object GraphUtils {
   def edgeListToFinalJson(edges: Array[(String,String)], top: Int, zeroZ: Boolean = true): JsObject = {
     val mod = edgeListToGephiModel(edges)
     println(s"node count: ${mod.getGraph.getNodeCount}, edge count: ${mod.getGraph.getEdgeCount}")
-    gephiLayout(mod, zeroZ)
+
+    val f = new KCoreFilter
+    f.setK(2)
+    f.filter(mod.getGraph)
+    println(s"filtered node count: ${mod.getGraph.getNodeCount}, filtered edge count: ${mod.getGraph.getEdgeCount}")
+
+    gephiLayout2(mod, zeroZ,
+      300, // max 300 iterations
+      300000, // max 5min run time
+      3, // descentCount
+      20.0 // descentThreshold
+    )
+    
     val modularity: Modularity = new Modularity
     modularity.execute(mod)
     modelToJson(mod, top)
