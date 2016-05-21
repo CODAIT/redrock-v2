@@ -130,7 +130,7 @@ object Dependency {
   val hadoophdfs = "org.apache.hadoop" % "hadoop-hdfs" % "2.7.2"
 
 
-  val jedis           = "redis.clients" % "jedis" % "2.8.0"
+  val jedis           = "redis.clients" % "jedis" % "2.8.1"
 }
 
 object Dependencies {
