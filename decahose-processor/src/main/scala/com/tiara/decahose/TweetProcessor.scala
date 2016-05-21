@@ -1,17 +1,15 @@
 package com.tiara.decahose
 
 import scala.collection.mutable.WrappedArray
-
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat
 import org.apache.spark.Logging
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrame, Row}
+import org.apache.spark.sql.{DataFrame, Row, SaveMode}
 import org.apache.spark.sql.functions._
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.{Seconds, StreamingContext, Time}
-
 import SqlUtils._
 
 /**
@@ -80,7 +78,7 @@ object TweetProcessor extends Logging{
     ssc
   }
 
-  def processedTweetsDataFrame(tweetsDF: DataFrame, debugString: String = "") = {
+  def processedTweetsDataFrame(tweetsDF: DataFrame, debugString: String = "", saveMode: SaveMode = SaveMode.Append) = {
     try{
 
       //TODO: in case of multiple files, use the file size information
@@ -103,7 +101,7 @@ object TweetProcessor extends Logging{
       val dfWriter = enDF
         .write
         .partitionBy(COL_POSTED_DATE)
-        .mode(org.apache.spark.sql.SaveMode.Append)
+        .mode(saveMode)
 
       dfWriter.format("parquet").save(enDir)
 
@@ -116,6 +114,7 @@ object TweetProcessor extends Logging{
       val dateToksDF = enDF
         .filter(not(col("body").rlike(excludeRegex)))
         .select(
+          col("verb"),
           col(COL_POSTED_DATE),
           col("actor.preferredUsername").as(COL_TWITTER_AUTHOR),
           col(COL_TOKEN_SET))
@@ -127,7 +126,7 @@ object TweetProcessor extends Logging{
       val dfwr = dateToksDF
         .write
         .partitionBy(COL_POSTED_DATE)
-        .mode(org.apache.spark.sql.SaveMode.Append)
+        .mode(saveMode)
 
       dfwr.format("parquet").save(toksDir)
 
@@ -146,7 +145,7 @@ object TweetProcessor extends Logging{
 
         // counter update of author posts
         // Barbara: Do not need to compute it for now
-        if (false) {
+        if (true) {
           val gDF = dateToksDF.select(
             col(COL_POSTED_DATE),
             col(COL_TWITTER_AUTHOR)
@@ -159,11 +158,11 @@ object TweetProcessor extends Logging{
 
         // counter update for the tuple2 of (hashtag: author)
         // this will provide top-k posters of a given hashtag
-        if (false) {
+        if (true) {
           val gDF = dateToksDF.filter("verb = 'post'")
             .select(
               col(COL_POSTED_DATE),
-              explode(tagToText(col("hashtags"))).as(COL_TOKEN_1),
+              explode(hashtagsFromToks(col(COL_TOKEN_SET))).as(COL_TOKEN_1),
               col(COL_TWITTER_AUTHOR).as(COL_TOKEN_2)
             ).groupBy(COL_POSTED_DATE, COL_TOKEN_1, COL_TOKEN_2).count.repartition(70)
 
