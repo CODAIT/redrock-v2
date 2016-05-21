@@ -93,7 +93,6 @@ object SqlUtils {
     else null
   )
 
-
   val lowerTwokensNoHttpNoStopNoApostropheNoNumbers = org.apache.spark.sql.functions.udf(
     (text: String) => if (text != null)
       com.tiara.decahose.Twokenize.tokenizeRawTweetText(text).asScala
@@ -107,6 +106,10 @@ object SqlUtils {
       })
         .filter((x: String) => !stopWords.contains(x) && !x.startsWith("http") && !x.matches(regexNumber))
     else null
+  )
+
+  val hashtagsFromToks = org.apache.spark.sql.functions.udf(
+    (toks: WrappedArray[String]) => toks.filter(_.startsWith("#"))
   )
 
   val tagToText = org.apache.spark.sql.functions.udf(
