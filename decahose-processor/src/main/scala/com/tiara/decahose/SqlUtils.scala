@@ -164,27 +164,30 @@ object SqlUtils {
     val jedis = pool.getResource
     var pipe = jedis.pipelined()
     var i: Int = 0
-    rows.foreach(
-      (row: Row) => {
-        val date: String = row.getAs[String](tsFieldName)
-        val tok1: String = row.getAs[String](COL_TOKEN_1)
-        val tok2: String = row.getAs[String](COL_TOKEN_2)
-        val count = row.getAs[Long](COL_COUNT)
-        pipe.zincrby(date + ":" + tok1, count, tok2)
-        pipe.zincrby(date + ":" + tok2, count, tok1)
-        pipe.expire(date + ":" + tok1, 86400 * 7)
-        pipe.expire(date + ":" + tok2, 86400 * 7)
+    try {
+      rows.foreach(
+        (row: Row) => {
+          val date: String = row.getAs[String](tsFieldName)
+          val tok1: String = row.getAs[String](COL_TOKEN_1)
+          val tok2: String = row.getAs[String](COL_TOKEN_2)
+          val count = row.getAs[Long](COL_COUNT)
+          pipe.zincrby(date + ":" + tok1, count, tok2)
+          pipe.zincrby(date + ":" + tok2, count, tok1)
+          pipe.expire(date + ":" + tok1, 86400 * 7)
+          pipe.expire(date + ":" + tok2, 86400 * 7)
 
-        i += 1
-        if (i > MAX_REDIS_PIPELINE) {
-          pipe.sync()
-          pipe = jedis.pipelined()
-          i = 0
+          i += 1
+          if (i > MAX_REDIS_PIPELINE) {
+            pipe.sync()
+            pipe = jedis.pipelined()
+            i = 0
+          }
         }
-      }
-    )
-    pipe.sync()
-    jedis.close()
+      )
+    } finally {
+      pipe.sync()
+      jedis.close()
+    }
   }
 
   // update count of 2-tuple (A, B) in redis
@@ -193,25 +196,28 @@ object SqlUtils {
     val jedis = pool.getResource
     var pipe = jedis.pipelined()
     var i: Int = 0
-    rows.foreach(
-      (row: Row) => {
-        val date: String = row.getAs[String](tsFieldName)
-        val tok1: String = row.getAs[String](COL_TOKEN_1)
-        val tok2: String = row.getAs[String](COL_TOKEN_2)
-        val count = row.getAs[Long](COL_COUNT)
-        pipe.zincrby(date + ":" + tok1, count, tok2)
-        pipe.expire(date + ":" + tok1, 86400 * 7)
+    try {
+      rows.foreach(
+        (row: Row) => {
+          val date: String = row.getAs[String](tsFieldName)
+          val tok1: String = row.getAs[String](COL_TOKEN_1)
+          val tok2: String = row.getAs[String](COL_TOKEN_2)
+          val count = row.getAs[Long](COL_COUNT)
+          pipe.zincrby(date + ":" + tok1, count, tok2)
+          pipe.expire(date + ":" + tok1, 86400 * 7)
 
-        i += 1
-        if (i > MAX_REDIS_PIPELINE) {
-          pipe.sync()
-          pipe = jedis.pipelined()
-          i = 0
+          i += 1
+          if (i > MAX_REDIS_PIPELINE) {
+            pipe.sync()
+            pipe = jedis.pipelined()
+            i = 0
+          }
         }
-      }
-    )
-    pipe.sync()
-    jedis.close()
+      )
+    } finally {
+      pipe.sync()
+      jedis.close()
+    }
   }
 
   // update frequency count of single entity in redis
@@ -220,34 +226,37 @@ object SqlUtils {
     val jedis = pool.getResource
     var pipe = jedis.pipelined()
     var i: Int = 0
-    rows.foreach(
-      (row: Row) => {
-        val date: String = row.getAs[String](tsFieldName)
-        val tok: String = row.getAs[String](tokenFieldName)
-        val tok0 = tok.substring(0, 1)
-        val count = row.getAs[Long](COL_COUNT)
-        var typeTag: String = tokenFieldName
-        if (tokenFieldName == COL_TWITTER_ENTITY) {
-          // 3 types of twitter "entity": hashtag, user mention, and plain string
-          if (tok0 == "#" || tok0 == "@") {
-            typeTag += tok0
-          } else {
-            typeTag += "S"
+    try {
+      rows.foreach(
+        (row: Row) => {
+          val date: String = row.getAs[String](tsFieldName)
+          val tok: String = row.getAs[String](tokenFieldName)
+          val tok0 = tok.substring(0, 1)
+          val count = row.getAs[Long](COL_COUNT)
+          var typeTag: String = tokenFieldName
+          if (tokenFieldName == COL_TWITTER_ENTITY) {
+            // 3 types of twitter "entity": hashtag, user mention, and plain string
+            if (tok0 == "#" || tok0 == "@") {
+              typeTag += tok0
+            } else {
+              typeTag += "S"
+            }
+          }
+          pipe.zincrby(date + ":" + typeTag, count, tok)
+          pipe.expire(date + ":" + typeTag, 86400 * 7)
+
+          i += 1
+          if (i > MAX_REDIS_PIPELINE) {
+            pipe.sync()
+            pipe = jedis.pipelined()
+            i = 0
           }
         }
-        pipe.zincrby(date + ":" + typeTag, count, tok)
-        pipe.expire(date + ":" + typeTag, 86400 * 7)
-
-        i += 1
-        if (i > MAX_REDIS_PIPELINE) {
-          pipe.sync()
-          pipe = jedis.pipelined()
-          i = 0
-        }
-      }
-    )
-    pipe.sync()
-    jedis.close()
+      )
+    } finally {
+      pipe.sync()
+      jedis.close()
+    }
   }
 
 
