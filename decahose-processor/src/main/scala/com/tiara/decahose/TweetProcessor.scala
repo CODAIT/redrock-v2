@@ -158,7 +158,7 @@ object TweetProcessor extends Logging{
 
         // counter update for the tuple2 of (hashtag: author)
         // this will provide top-k posters of a given hashtag
-        if (true) {
+        if (false) {
           val gDF = dateToksDF.filter("verb = 'post'")
             .select(
               col(COL_POSTED_DATE),
