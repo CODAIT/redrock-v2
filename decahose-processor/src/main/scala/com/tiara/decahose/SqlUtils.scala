@@ -5,7 +5,7 @@ import scala.collection.mutable.WrappedArray
 import org.apache.hadoop.fs.Path
 import org.apache.spark.Logging
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.Row
+import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions._
 import org.apache.spark.storage.StorageLevel
 import redis.clients.jedis._
@@ -151,8 +151,46 @@ object SqlUtils extends Logging {
     }
   )
 
-  //TODO: find a way to close pools/connections when the Spark job gets killed.
-  // right now the TCP conns remains open in the Executor JVM
+  def toksToHashtagCounts(toks: DataFrame): DataFrame = {
+    toks.select(
+      explode(
+        hashtagsFromToks(col("toks"))
+      ).as("hashtag")
+    )
+      .groupBy("hashtag")
+      .count
+      .orderBy(col("count").desc)
+  }
+
+  def toksToHashtagByAuthorCounts(toks: DataFrame): DataFrame = {
+    toks.select(
+      col(COL_TWITTER_AUTHOR),
+      explode(
+        hashtagsFromToks(col("toks"))
+      ).as("hashtag")
+    )
+      .distinct
+      .groupBy("hashtag")
+      .count
+      .orderBy(col("count").desc)
+  }
+
+  def toksToHashtagPairCounts(toks: DataFrame): DataFrame = {
+    toks.select(
+      hashtagsFromToks(col("toks")).as("hashtags")
+    )
+      .explode("hashtags", "pair") {
+        (toks: scala.collection.mutable.WrappedArray[String]) =>
+          toks.toSeq.distinct
+            .combinations(2).toList
+            .map(_.sorted)
+            .map((x: Seq[String]) => Tuple2(x(0), x(1)))
+      }
+      .select("pair._1", "pair._2")
+      .groupBy("_1", "_2").count
+      .orderBy(col("count").desc)
+  }
+
   val pool: JedisPool = new JedisPool(new JedisPoolConfig(), Config.processorConf.getString("redis-server"))
   val MAX_REDIS_PIPELINE = 10000
 
