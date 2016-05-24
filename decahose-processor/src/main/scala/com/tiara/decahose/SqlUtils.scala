@@ -2,16 +2,15 @@ package com.tiara.decahose
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.WrappedArray
-
 import org.apache.hadoop.fs.Path
+import org.apache.spark.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.functions._
 import org.apache.spark.storage.StorageLevel
-
 import redis.clients.jedis._
 
-object SqlUtils {
+object SqlUtils extends Logging {
 
   // field names we generate in sql stmts
   val COL_POSTED_DATE = Config.processorConf.getString("post-date-col-name")
@@ -184,6 +183,8 @@ object SqlUtils {
           }
         }
       )
+    } catch {
+      case e: Exception => logError("Counter update exception:", e)
     } finally {
       pipe.sync()
       jedis.close()
@@ -214,6 +215,8 @@ object SqlUtils {
           }
         }
       )
+    } catch {
+      case e: Exception => logError("Counter update exception:", e)
     } finally {
       pipe.sync()
       jedis.close()
@@ -253,6 +256,8 @@ object SqlUtils {
           }
         }
       )
+    } catch {
+      case e: Exception => logError("Counter update exception:", e)
     } finally {
       pipe.sync()
       jedis.close()
