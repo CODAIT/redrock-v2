@@ -97,37 +97,40 @@ object ExecuteCommunityGraph extends Logging{
     logInfo(s"Search terms MD5: $md5")
 
     val jedis = ApplicationContext.jedisPool.getResource
-    var pipe = jedis.pipelined()
+    try {
+      var pipe = jedis.pipelined()
 
-    if(jedis.exists(md5)){
-      logInfo("Dropping old cache")
-      val keys:Array[String] = jedis.keys(s"$md5*").toArray.map(_.toString)
-      jedis.del(keys:_*)
-    }
-
-    var count = 0
-    val nodes = (graph \ GraphUtils.nodesLabel).as[List[List[JsValue]]]
-    nodes.foreach(node => {
-      val community:String = node(3).as[String]
-      pipe.sadd(md5,community)
-      pipe.lpush(s"$md5:$community", node(0).as[String])
-      // Timeline when the cache will be avaiable
-      pipe.expire(md5,cacheExpiration)
-      pipe.expire(s"$md5:$community",cacheExpiration)
-      count += 2;
-
-      // Commit to redis every 10k instructions
-      if(count == 10000){
-        pipe.sync()
-        pipe.close()
-        pipe = jedis.pipelined()
-        count = 0
+      if (jedis.exists(md5)) {
+        logInfo("Dropping old cache")
+        val keys: Array[String] = jedis.keys(s"$md5*").toArray.map(_.toString)
+        jedis.del(keys: _*)
       }
-    })
 
-    pipe.sync()
-    pipe.close()
-    jedis.close()
+      var count = 0
+      val nodes = (graph \ GraphUtils.nodesLabel).as[List[List[JsValue]]]
+      nodes.foreach(node => {
+        val community: String = node(3).as[String]
+        pipe.sadd(md5, community)
+        pipe.lpush(s"$md5:$community", node(0).as[String])
+        // Timeline when the cache will be avaiable
+        pipe.expire(md5, cacheExpiration)
+        pipe.expire(s"$md5:$community", cacheExpiration)
+        count += 2;
+
+        // Commit to redis every 10k instructions
+        if (count == 10000) {
+          pipe.sync()
+          pipe.close()
+          pipe = jedis.pipelined()
+          count = 0
+        }
+      })
+
+      pipe.sync()
+      pipe.close()
+    } finally {
+      jedis.close()
+    }
     md5
   }
 

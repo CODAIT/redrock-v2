@@ -27,14 +27,15 @@ object ExecuteMetricAnalysis extends Logging{
   }
 
   private def getResponseForTopTerms(count: Int):String = {
+    val jedis = ApplicationContext.jedisPool.getResource
     try {
-      val jedis = ApplicationContext.jedisPool.getResource
       val hashtags = getTopHashtags(count, jedis)
       val handles = getTopHandles(count, jedis)
-      jedis.close()
       Json.stringify(buildResponse(true, hashtags, handles))
     }catch {
       case e:Exception => logError("Could not get top terms", e); Json.stringify(buildResponse(false))
+    } finally {
+      jedis.close()
     }
   }
 

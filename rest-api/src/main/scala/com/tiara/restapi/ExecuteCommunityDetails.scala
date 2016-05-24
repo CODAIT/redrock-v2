@@ -46,46 +46,48 @@ object ExecuteCommunityDetails extends Logging{
 
     import ApplicationContext.sqlContext.implicits._
 
-    logInfo("Loading membership from redis")
-    // Get communities from redis
-    val communities = jedis.smembers(md5)
-    if(communities != null && !communities.isEmpty) {
-      val membership: ArrayBuffer[(String, Array[String])] = ArrayBuffer.empty
-      val it_com = communities.iterator()
+    try {
+      logInfo("Loading membership from redis")
+      // Get communities from redis
+      val communities = jedis.smembers(md5)
+      if (communities != null && !communities.isEmpty) {
+        val membership: ArrayBuffer[(String, Array[String])] = ArrayBuffer.empty
+        val it_com = communities.iterator()
 
-      // Populating membership array
-      while(it_com.hasNext){
-        val communityID = it_com.next()
-        val users = getUsersForCommunity(md5, communityID, jedis)
-        populateMembership(membership, communityID, users)
+        // Populating membership array
+        while (it_com.hasNext) {
+          val communityID = it_com.next()
+          val users = getUsersForCommunity(md5, communityID, jedis)
+          populateMembership(membership, communityID, users)
+        }
+
+        //Get membership as DF
+        val membershipDF = ApplicationContext.sparkContext
+          .parallelize(membership).toDF
+          .withColumnRenamed("_1", "community")
+          .withColumnRenamed("_2", "uids")
+          .select(col("community"), explode(col("uids")).as("uid"))
+
+        val filteredRT = getFilteredRT(searchTerms)
+        logInfo("Joining membership DF to Retweets DF")
+        // OBS: I think the join should be looking also to the OUID column of the filtered tweets
+        // Somenthing like (filteredRT("uid") === membershipDF("uid") || filteredRT("ouid") === membershipDF("uid"))
+        // Because the nodes list from the community graph includes users that was retweeted
+        val membershipRT_DF = filteredRT.join(membershipDF, filteredRT("uid") === membershipDF("uid")).cache()
+
+        // Get sentiment
+        val sentimentResponse: JsObject = extractSentiment(membershipRT_DF)
+        val wordcloudResponse: JsObject = extractWordCloud(membershipRT_DF, count)
+
+        membershipRT_DF.unpersist(false)
+        Json.stringify(buildResponse(true, sentimentResponse, wordcloudResponse))
+
+      } else {
+        logInfo(s"No cached data for search: $searchTerms == MD5 $md5")
+        Json.stringify(buildResponse(false, Json.obj(), Json.obj()))
       }
-
-      //Get membership as DF
-      val membershipDF = ApplicationContext.sparkContext
-                          .parallelize(membership).toDF
-                          .withColumnRenamed("_1", "community")
-                          .withColumnRenamed("_2", "uids")
-                          .select(col("community"), explode(col("uids")).as("uid"))
-
-      val filteredRT = getFilteredRT(searchTerms)
-      logInfo("Joining membership DF to Retweets DF")
-      // OBS: I think the join should be looking also to the OUID column of the filtered tweets
-      // Somenthing like (filteredRT("uid") === membershipDF("uid") || filteredRT("ouid") === membershipDF("uid"))
-      // Because the nodes list from the community graph includes users that was retweeted
-      val membershipRT_DF = filteredRT.join(membershipDF, filteredRT("uid") === membershipDF("uid")).cache()
-
-      // Get sentiment
-      val sentimentResponse:JsObject = extractSentiment(membershipRT_DF)
-      val wordcloudResponse:JsObject = extractWordCloud(membershipRT_DF, count)
-
-      membershipRT_DF.unpersist(false)
+    } finally {
       jedis.close()
-
-      Json.stringify(buildResponse(true,sentimentResponse,wordcloudResponse))
-
-    }else{
-      logInfo(s"No cached data for search: $searchTerms == MD5 $md5")
-      Json.stringify(buildResponse(false,Json.obj(),Json.obj()))
     }
   }
 

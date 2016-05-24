@@ -72,8 +72,8 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
   }
 
   private def getFrequency(synonyms: Array[String]): Array[(String,Int)] ={
+    val jedis = ApplicationContext.jedisPool.getResource
     try {
-      val jedis = ApplicationContext.jedisPool.getResource
       var response: Array[(String,Int)] = Array.empty
       for(synonym <- synonyms){
         var key = s"${InMemoryData.date}:${redisCountKeySufix}"
@@ -88,7 +88,6 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
         val freq =  if(redisReponse == null) 0 else redisReponse.toInt
         response = response :+ (synonym, freq)
       }
-      jedis.close()
       response
       /* Using counters from redis
       val inString = synonyms.mkString("(", ",", ")")
@@ -97,12 +96,14 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
         .map(result => (result(0).toString, result(1).asInstanceOf[Int]))*/
     } catch{
       case e: Exception => logError("Could not get freq count", e); null
+    } finally {
+      jedis.close()
     }
   }
 
   private def getSearchTermFrequency(searchTerm: String): Int = {
+    val jedis = ApplicationContext.jedisPool.getResource
     try {
-      val jedis = ApplicationContext.jedisPool.getResource
       var key = s"${InMemoryData.date}:${redisCountKeySufix}"
       val startWith = searchTerm.charAt(0)
       if (startWith == '#' || startWith == '@') {
@@ -111,10 +112,11 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
         key = s"${key}S"
       }
       val redisReponse = jedis.zscore(key, searchTerm)
-      jedis.close()
       if (redisReponse == null) 0 else redisReponse.toInt
     }catch{
       case e:Exception => logError("Could not get freq for search term", e); 0
+    } finally {
+      jedis.close()
     }
   }
 
