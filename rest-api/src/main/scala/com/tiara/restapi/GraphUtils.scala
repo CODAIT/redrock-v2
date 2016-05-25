@@ -37,7 +37,7 @@ object GraphUtils {
     }
   }
 
-  def edgeListToGephiModel(graph: Array[(String, String)]): GraphModelImpl = {
+  def edgeListToGephiModel(graph: Array[(String, String, String)]): GraphModelImpl = {
     val config = new Configuration
     val graphModel = GraphModel.Factory.newInstance(config)
     val mod = graphModel.asInstanceOf[org.gephi.graph.impl.GraphModelImpl]
@@ -68,7 +68,7 @@ object GraphUtils {
         n1 = store.getNode(dst)
       }
 
-      val e1 = factory.newEdge(n0, n1, 0, 1.0, true)
+      val e1 = factory.newEdge(n0, n1, 0, edge._3.toDouble, true)
       store.addEdge(e1)
     }
 
@@ -145,7 +145,10 @@ object GraphUtils {
     val edges = scala.io.Source.fromFile(graphFile).getLines().toArray.map{
       (line: String) =>
         val toks = line.split(separator)
-        new Tuple2(toks(0), toks(1))
+        if (toks.length == 3)
+          new Tuple3(toks(0), toks(1), toks(2))
+        else
+          new Tuple3(toks(0), toks(1), "1.0")
     }
     val graphModel = edgeListToGephiModel(edges)
     val directedGraph = graphModel.getDirectedGraph
@@ -197,7 +200,7 @@ object GraphUtils {
     nodes ++ edges
   }
 
-  def edgeListToFinalJson(edges: Array[(String,String)], top: Int, zeroZ: Boolean = true): JsObject = {
+  def edgeListToFinalJson(edges: Array[(String,String, String)], top: Int, zeroZ: Boolean = true): JsObject = {
     val mod = edgeListToGephiModel(edges)
     println(s"node count: ${mod.getGraph.getNodeCount}, edge count: ${mod.getGraph.getEdgeCount}")
 
@@ -226,7 +229,7 @@ object GraphUtils {
     ).getLines().toArray.map{
       (line: String) =>
         val toks = line.split(" ")
-        new Tuple2(toks(0), toks(1))
+        new Tuple3(toks(0), toks(1), "1.0")
     }
     val mod = edgeListToGephiModel(G)
     gephiLayout(mod, true)

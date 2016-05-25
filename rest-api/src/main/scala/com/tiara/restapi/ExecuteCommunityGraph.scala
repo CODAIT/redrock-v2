@@ -72,7 +72,7 @@ object ExecuteCommunityGraph extends Logging{
   }
 
   private def getCommunity(filteredDF: DataFrame, get3Dresults: Boolean,top: Int): JsObject = {
-    val edgeList = filteredDF.select(col("uid"), col("ouid")).collect.map((r: Row) => (r.getString(0), r.getString(1)))
+    val edgeList = filteredDF.select(col("uid"), col("ouid")).groupBy("uid", "ouid").count.collect.map((r: Row) => (r.getString(0), r.getString(1), r.getLong(2).toString))
 
     GraphUtils.edgeListToFinalJson(edgeList, top, zeroZ = !get3Dresults)
   }
