@@ -26,6 +26,7 @@ tiara {
 
         update-redis-counters = true
         redis-server = "localhost"
+        redis-port = "6379"
 
         tweet-schema-json = "decahose-large.json"
 
@@ -123,6 +124,7 @@ tiara {
         tokens-column-name = ${tiara.decahose-processor.tokens-column}
 
         redis-server = ${tiara.decahose-processor.redis-server}
+        redis-port = ${tiara.decahose-processor.redis-port}
         redis-key-entity = ${tiara.decahose-processor.redis-tweet-entity-token-count}
         prefix-tokens-folder-daily = ${tiara.word-2-vec.prefix-tokens-folder-daily}
         cache-graph-membership = true

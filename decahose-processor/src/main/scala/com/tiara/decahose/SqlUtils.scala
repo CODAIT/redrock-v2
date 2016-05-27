@@ -19,6 +19,7 @@ object SqlUtils extends Logging {
   val COL_SENTIMENT = Config.processorConf.getString("sentiment-column")
   val COL_POSTED_HOUR = "postedHour"
   val COL_TWITTER_AUTHOR = "AU"
+  val COL_HASHTAG = "hashtag"
   val COL_TOKEN = "tok"
   val COL_TOKEN_1 = "tok1"
   val COL_TOKEN_2 = "tok2"
@@ -153,26 +154,26 @@ object SqlUtils extends Logging {
 
   def toksToHashtagCounts(toks: DataFrame): DataFrame = {
     toks.select(
+      col(COL_POSTED_DATE),
       explode(
         hashtagsFromToks(col("toks"))
-      ).as("hashtag")
+      ).as(COL_HASHTAG)
     )
-      .groupBy("hashtag")
+      .groupBy(COL_POSTED_DATE, COL_HASHTAG)
       .count
-      .orderBy(col("count").desc)
   }
 
   def toksToHashtagByAuthorCounts(toks: DataFrame): DataFrame = {
     toks.select(
+      col(COL_POSTED_DATE),
       col(COL_TWITTER_AUTHOR),
       explode(
         hashtagsFromToks(col("toks"))
-      ).as("hashtag")
+      ).as(COL_HASHTAG)
     )
       .distinct
-      .groupBy("hashtag")
+      .groupBy(COL_POSTED_DATE, COL_HASHTAG)
       .count
-      .orderBy(col("count").desc)
   }
 
   def toksToHashtagPairCounts(toks: DataFrame): DataFrame = {
@@ -188,10 +189,13 @@ object SqlUtils extends Logging {
       }
       .select("pair._1", "pair._2")
       .groupBy("_1", "_2").count
-      .orderBy(col("count").desc)
   }
 
-  val pool: JedisPool = new JedisPool(new JedisPoolConfig(), Config.processorConf.getString("redis-server"))
+  val pool: JedisPool = new JedisPool(
+    new JedisPoolConfig(),
+    Config.processorConf.getString("redis-server"),
+    Config.processorConf.getInt("redis-port")
+  )
   val MAX_REDIS_PIPELINE = 10000
 
   // update count of unordered pairs (A, B) in redis
@@ -302,5 +306,37 @@ object SqlUtils extends Logging {
     }
   }
 
+
+  // Update time series data points in redis
+  def groupedUpdateTimeSeries(redisTSTag: String, tsFieldName: String, tokenFieldName: String, rows: Iterator[Row]): Unit = {
+    val jedis = pool.getResource
+    var pipe = jedis.pipelined()
+    var i: Int = 0
+    try {
+      rows.foreach(
+        (row: Row) => {
+          val date: String = row.getAs[String](tsFieldName)
+          val tok: String = row.getAs[String](tokenFieldName)
+          val count = row.getAs[Long](COL_COUNT)
+
+          // do not expire this key
+          pipe.hset(redisTSTag + ":" + tok, date, count.toString)
+          pipe.sync
+
+          i += 1
+          if (i > MAX_REDIS_PIPELINE) {
+            pipe.sync()
+            pipe = jedis.pipelined()
+            i = 0
+          }
+        }
+      )
+    } catch {
+      case e: Exception => logError("Counter update exception:", e)
+    } finally {
+      pipe.sync()
+      jedis.close()
+    }
+  }
 
 }

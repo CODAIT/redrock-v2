@@ -34,6 +34,10 @@ object ApplicationContext {
    * And sometimes creating lots of Jedis instances is not good enough because it means lots of sockets and connections.
    * To avoid these problems, you should use JedisPool, which is a threadsafe pool of network connections.
    */
-  val jedisPool: JedisPool = new JedisPool(new JedisPoolConfig(), Config.restapi.getString("redis-server"))
+  val jedisPool: JedisPool = new JedisPool(
+    new JedisPoolConfig(),
+    Config.restapi.getString("redis-server"),
+    Config.restapi.getInt("redis-port")
+  )
 
 }
