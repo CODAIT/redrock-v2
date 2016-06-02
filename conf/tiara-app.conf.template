@@ -119,6 +119,7 @@ tiara {
         token-file-name = ${tiara.word-2-vec.token-file-name}
         folder-name-model = ${tiara.word-2-vec.folder-name-model}
         folder-name-word-count = ${tiara.word-2-vec.folder-name-word-count}
+        date-format = ${tiara.word-2-vec.date-format}
 
         sentiment-column-name = ${tiara.decahose-processor.sentiment-column}
         tokens-column-name = ${tiara.decahose-processor.tokens-column}

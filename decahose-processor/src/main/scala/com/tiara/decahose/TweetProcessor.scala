@@ -108,7 +108,6 @@ object TweetProcessor extends Logging{
       // read it back from parquet files, this is faster
 //      val enDF = tweetsDF.sqlContext.read.parquet(enDir + "/" + timeWindow)
 //      val enDF = tweetsDF.sqlContext.read.parquet("hdfs://spark-dense-01:8020/daily/en/2016_03_01")
-      //TODO: and Add Sentiment field
 
       // extract all unique lower case string tokens, from both original body and the retweet
       val dateToksDF = enDF
