@@ -24,7 +24,7 @@ class UpdateWord2VecModel extends Actor with Logging{
       val newModelName: String = checkForTokenFile()
 
       if(!newModelName.isEmpty()) {
-        updateModel(newModelName)
+        updateModelInMemory(newModelName)
 
         // Delete token file
         deleteTokenFileAfterProcessed
@@ -81,7 +81,7 @@ object UpdateWord2VecModel extends Logging {
     Props(new UpdateWord2VecModel)
   }
 
-  def updateModel0(newModelName: String) = {
+  def updateModelInMemory(newModelName: String) = {
     logInfo(s"New model generated: $newModelName")
     val modelPath = s"$modelsPath/$newModelName"
 
@@ -119,7 +119,7 @@ object UpdateWord2VecModel extends Logging {
       val tempDate = dateFormat.parse(date);
       if (date.equals(dateFormat.format(tempDate))) {
         val newModelName = s"$datePrefix$date"
-        updateModel0(newModelName)
+        updateModelInMemory(newModelName)
       }
       "success"
     } catch {
