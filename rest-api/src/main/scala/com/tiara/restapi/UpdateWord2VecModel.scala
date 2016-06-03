@@ -18,9 +18,6 @@ class UpdateWord2VecModel extends Actor with Logging{
 
   import UpdateWord2VecModel._
 
-  val delay = Config.restapi.getInt("start-scheduler-after").seconds
-  val interval = Config.restapi.getInt("check-for-new-model-interval").seconds
-
   //Check every 10min for a new model
   context.system.scheduler.schedule(delay, interval) {
     try {
@@ -40,39 +37,6 @@ class UpdateWord2VecModel extends Actor with Logging{
   override def receive: Receive = {
     case StartMonitoringWord2VecModels =>{
       logInfo("Word2Vec models monitoring started.")
-    }
-  }
-
-  def updateModel(newModelName: String) = {
-    logInfo(s"New model generated: $newModelName")
-    val modelPath = s"$modelsPath/$newModelName"
-
-    try {
-      InMemoryData.word2VecModel = Word2VecModel.load(ApplicationContext.sparkContext,s"$modelPath/$modelFolder")
-      // Using counters from Redis
-      // InMemoryData.frequency = ApplicationContext.sqlContext.read.parquet(s"$modelPath/$freqFolder")
-      val newRTDF = ApplicationContext.sqlContext.read.parquet(s"$englishPath/$newModelName")
-                                .filter("verb = 'share'")
-                                .withColumn("stringtoks", stringTokens(col(COL_TOKENS)))
-                                .select(col("actor.preferredUsername").as("uid"),
-                                        col("object.actor.preferredUsername").as("ouid"),
-                                        /* Since the community graph will be filtered by the results
-                                         * from the word2vec models, and the word2vec model is computed
-                                         * using only the tokens, we don't need to use the tweet body,
-                                         * we can use a string built from the tokens (less data in memory)
-                                         */
-                                        col("stringtoks").as(COL_TOKENS),
-                                        col(COL_SENTIMENT))
-      // Change in memory DF
-      if (InMemoryData.retweetsENDF != null) InMemoryData.retweetsENDF.unpersist(true)
-      InMemoryData.retweetsENDF = newRTDF
-      InMemoryData.retweetsENDF.persist()
-
-      // Get string reference to the date for the model and RT DF
-      InMemoryData.date = newModelName.replace(datePrefix, "")
-
-    }catch {
-      case e: Exception => logError("Model could not be updated", e)
     }
   }
 
@@ -98,6 +62,9 @@ class UpdateWord2VecModel extends Actor with Logging{
 
 object UpdateWord2VecModel extends Logging {
 
+  val delay = Config.restapi.getInt("start-scheduler-after").seconds
+  val interval = Config.restapi.getInt("check-for-new-model-interval").seconds
+
   val modelsPath = Config.restapi.getString("path-to-daily-models")
   val tokenFile = s"${modelsPath}/${Config.restapi.getString("token-file-name")}"
   val modelFolder = Config.restapi.getString("folder-name-model")
@@ -105,14 +72,46 @@ object UpdateWord2VecModel extends Logging {
   val englishPath = Config.restapi.getString("daily-en-tweets-dir")
   val datePrefix = Config.restapi.getString("prefix-tokens-folder-daily")
 
-  val model = new UpdateWord2VecModel
   val dateFormat = new SimpleDateFormat(Config.restapi.getString("date-format"))
 
 
   case object StartMonitoringWord2VecModels
 
   def props: Props = {
-    Props(model)
+    Props(new UpdateWord2VecModel)
+  }
+
+  def updateModel0(newModelName: String) = {
+    logInfo(s"New model generated: $newModelName")
+    val modelPath = s"$modelsPath/$newModelName"
+
+    try {
+      InMemoryData.word2VecModel = Word2VecModel.load(ApplicationContext.sparkContext,s"$modelPath/$modelFolder")
+      // Using counters from Redis
+      // InMemoryData.frequency = ApplicationContext.sqlContext.read.parquet(s"$modelPath/$freqFolder")
+      val newRTDF = ApplicationContext.sqlContext.read.parquet(s"$englishPath/$newModelName")
+        .filter("verb = 'share'")
+        .withColumn("stringtoks", stringTokens(col(COL_TOKENS)))
+        .select(col("actor.preferredUsername").as("uid"),
+          col("object.actor.preferredUsername").as("ouid"),
+          /* Since the community graph will be filtered by the results
+           * from the word2vec models, and the word2vec model is computed
+           * using only the tokens, we don't need to use the tweet body,
+           * we can use a string built from the tokens (less data in memory)
+           */
+          col("stringtoks").as(COL_TOKENS),
+          col(COL_SENTIMENT))
+      // Change in memory DF
+      if (InMemoryData.retweetsENDF != null) InMemoryData.retweetsENDF.unpersist(true)
+      InMemoryData.retweetsENDF = newRTDF
+      InMemoryData.retweetsENDF.persist()
+
+      // Get string reference to the date for the model and RT DF
+      InMemoryData.date = newModelName.replace(datePrefix, "")
+
+    }catch {
+      case e: Exception => logError("Model could not be updated", e)
+    }
   }
 
   def updateModel(date: String): String = {
@@ -120,7 +119,7 @@ object UpdateWord2VecModel extends Logging {
       val tempDate = dateFormat.parse(date);
       if (date.equals(dateFormat.format(tempDate))) {
         val newModelName = s"$datePrefix$date"
-        model.updateModel(newModelName)
+        updateModel0(newModelName)
       }
       "success"
     } catch {
