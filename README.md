@@ -8,9 +8,9 @@ How to configure local environment and **RedRock v2** code to run in standalone 
 
 In this guide it is assumed you are using a mac, but it can easily translate to any linux distribution
 
-## Running RedRock
+## Running RedRock v2
 
-### Download RedRock code
+### Download RedRock v2 code
 
 Clone the RedRock v2 Backend code at: <https://github.com/SparkTC/tiara>
 
