@@ -23,12 +23,21 @@ object ExecuteCommunityGraph extends Logging{
   val cacheMembership = Config.restapi.getBoolean("cache-graph-membership")
   val cacheExpiration = Config.restapi.getInt("membership-graph-expiration")
 
-  def getResults(searchTerms: String, top: Int, get3Dresults: Boolean = false): Future[String] = {
+  var commResolution: Double = 1.0
+  var commTop: Double = 0.9
+
+  def setParams(resolution: Double, top: Double): String = {
+    commResolution = resolution
+    commTop = top
+    "OK"
+  }
+
+  def getResults(searchTerms: String, get3Dresults: Boolean = false): Future[String] = {
 
     logInfo(s"Get community graph with search: $searchTerms.")
     logInfo(s"Add 3D result: $get3Dresults")
 
-    val result = future {getCommunityGraphForVisualization(searchTerms.toLowerCase(),get3Dresults,top)}
+    val result = future {getCommunityGraphForVisualization(searchTerms.toLowerCase(),get3Dresults, commResolution, commTop)}
 
     result.recover{
       case e: Exception => logError("Could not execute request.", e); Json.stringify(buildResponse(false))
@@ -36,7 +45,7 @@ object ExecuteCommunityGraph extends Logging{
 
   }
 
-  private def getCommunityGraphForVisualization(searchTerms: String, get3Dresults: Boolean, top: Int): String = {
+  private def getCommunityGraphForVisualization(searchTerms: String, get3Dresults: Boolean, resolution: Double, top: Double): String = {
     val startTime = System.nanoTime()
     logInfo("Filtering RT dataframe")
     /* Using white space between the terms in order to avoid matches like: #go => #going
@@ -48,7 +57,7 @@ object ExecuteCommunityGraph extends Logging{
     var results: JsObject = null
     var success:Boolean = false;
     try {
-      results = getCommunity(filteredDF, get3Dresults,top)
+      results = getCommunity(filteredDF, get3Dresults, resolution, top)
       success = true
     }catch {
       case e: Exception => logInfo("Error while generating community graph", e)
@@ -71,10 +80,10 @@ object ExecuteCommunityGraph extends Logging{
     Json.stringify(response)
   }
 
-  private def getCommunity(filteredDF: DataFrame, get3Dresults: Boolean,top: Int): JsObject = {
+  private def getCommunity(filteredDF: DataFrame, get3Dresults: Boolean, resolution: Double, top: Double): JsObject = {
     val edgeList = filteredDF.select(col("uid"), col("ouid")).groupBy("uid", "ouid").count.collect.map((r: Row) => (r.getString(0), r.getString(1), r.getLong(2).toString))
 
-    GraphUtils.edgeListToFinalJson(edgeList, top, zeroZ = !get3Dresults)
+    GraphUtils.edgeListToFinalJson(edgeList, resolution, top, zeroZ = !get3Dresults)
   }
 
   private def buildResponse(get3Dresults:Boolean, success: Boolean = true, result: JsObject = null):JsObject = {
