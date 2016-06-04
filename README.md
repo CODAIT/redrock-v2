@@ -197,7 +197,7 @@ The RedRock v2 configuration file is located at **TIARA_HOME/conf/tiara-app.conf
 | fileNameExtensionGson | Twitter data file extension for data previous to June 2015 | "activity.gson.gz"
 | user                  | Bluemix user          | "########"
 | password              | Bluemix password      | "###########"
-| hostname              | Bluemix host          | "https://cde-archive.services.dal.bluemix.net/"
+| hostname              | Bluemix host          | "https<span>://cde-archive.services.dal.bluemix.net/"
 | startDownloadingAfter | How many seconds after the application have started will the task begin to be executed | 10
 | timeInterval          | Time interval in seconds that the task will be executed | 60
 
