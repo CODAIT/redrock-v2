@@ -150,115 +150,114 @@ To send a request to the REST API just open a browser and use one of the URLs sp
 
 The RedRock v2 configuration file is located at **TIARA_HOME/conf/tiara-app.conf.template**. The key root for each section is listed at the top of each table.
 
-##### Application [ _tiara.*_ ]
+#### Application -- tiara.\*
 
-   | **Key**                       | **Meaning**           | **Default**  |
-   | ----------------------------- |-----------------------| -------------|
-   | app-name                      | Application name      | "TIARA"
-   | hadoop-default-fs             | Location of hdfs      | "hdfs://localhost:9000"
-   | date-time-format-to-display   | Timestamp format for raw twitter data | "yyyy-MM-dd HH:mm:ss"
+| **Key**                       | **Meaning**           | **Default**  |
+| ----------------------------- |-----------------------| -------------|
+| app-name                      | Application name      | "TIARA"
+| hadoop-default-fs             | Location of hdfs      | "hdfs://localhost:9000"
+| date-time-format-to-display   | Timestamp format for raw twitter data | "yyyy-MM-dd HH:mm:ss"
 
-##### Decahose [ _tiara.decahose-processor.*_ ]
+#### Decahose -- tiara.decahose-processor.\*
 
-   | **Key**               | **Meaning**           | **Default**  |
-   | --------------------- |-----------------------| -------------|
-   | historical.enabled    | Process historical data before starting streaming | true
-   | historical.data-path  | Data path for the historical data | ${tiara.hadoop-default-fs}"/data/rawTweets/*"
-   | decahose-dir          | Data path for the streaming data | ${tiara.hadoop-default-fs}"/tiara/decahose/streaming"
-   | daily-en-tweets-dir   | Data path for the english tweets | ${tiara.hadoop-default-fs}"/tiara/en"
-   | tokens-dir            | Data path for the token data | ${tiara.hadoop-default-fs}"/tiara/toks"
-   | debug-dir             | Data path for development debug data | ${tiara.hadoop-default-fs}"/tiara/debug"
-   | batch-server-listen-port | Batch server bind port | "9999"
-   | post-date-col-name    | Date column name      | "postedDate"
-   | tokens-column         | Token column name    | "toks"
-   | redis-tweet-entity-token-count | Redis token prefix | "ES"
-   | sentiment-column      | Sentiment column name | "sentiment"
-   | update-redis-counters | Update redis counters | true
-   | redis-server          | Redis host            | "localhost"
-   | redis-port            | Redis host port       | "6379"
-   | tweet-schema-json     | Tweet schema file     | "decahose-large.json"
-   | writing-mode-string   | Temporary file name concatination while writing | "\_WRITING_"
-   | spark.sql-shuffle-partitions | Number of Spark partitions | 5
-   | spark.UI-port         | Port to bind the Decahose UI Spark application | "4040"
-   | spark.executor-memory | Amount of executor memory to be used by the Decahose Spark Application | "2g"
-   | spark.cores-max       | Max cores to be used by Spark in the application | 4
-   | spark.executor-cores  | number of cores to be used on each executor | 1
-   | spark.streaming-batch-time | Interval in seconds to process streaming data | 60
-   | spark.delete-file-after-processed | Delete file after it has been processed by Spark | false
+| **Key**               | **Meaning**           | **Default**  |
+| --------------------- |-----------------------| -------------|
+| historical.enabled    | Process historical data before starting streaming | true
+| historical.data-path  | Data path for the historical data | ${tiara.hadoop-default-fs}"/data/rawTweets/\*"
+| decahose-dir          | Data path for the streaming data | ${tiara.hadoop-default-fs}"/tiara/decahose/streaming"
+| daily-en-tweets-dir   | Data path for the english tweets | ${tiara.hadoop-default-fs}"/tiara/en"
+| tokens-dir            | Data path for the token data | ${tiara.hadoop-default-fs}"/tiara/toks"
+| debug-dir             | Data path for development debug data | ${tiara.hadoop-default-fs}"/tiara/debug"
+| batch-server-listen-port | Batch server bind port | "9999"
+| post-date-col-name    | Date column name      | "postedDate"
+| tokens-column         | Token column name    | "toks"
+| redis-tweet-entity-token-count | Redis token prefix | "ES"
+| sentiment-column      | Sentiment column name | "sentiment"
+| update-redis-counters | Update redis counters | true
+| redis-server          | Redis host            | "localhost"
+| redis-port            | Redis host port       | "6379"
+| tweet-schema-json     | Tweet schema file     | "decahose-large.json"
+| writing-mode-string   | Temporary file name concatination while writing | "\_WRITING_"
+| spark.sql-shuffle-partitions | Number of Spark partitions | 5
+| spark.UI-port         | Port to bind the Decahose UI Spark application | "4040"
+| spark.executor-memory | Amount of executor memory to be used by the Decahose Spark Application | "2g"
+| spark.cores-max       | Max cores to be used by Spark in the application | 4
+| spark.executor-cores  | number of cores to be used on each executor | 1
+| spark.streaming-batch-time | Interval in seconds to process streaming data | 60
+| spark.delete-file-after-processed | Delete file after it has been processed by Spark | false
 
-##### Decahose Poll Actor [ _tiara.decahose-processor.poll-decahose-actor.*_ ]
+#### Decahose Poll Actor -- tiara.decahose-processor.poll-decahose-actor.\*
 
-   | **Key**               | **Meaning**           | **Default**  |
-   | --------------------- |-----------------------| -------------|
-   | timezone              | Timezone for Decahose requests | "PST"
-   | fileNameFormatForURL  | Twitter data path format in hdsf | "yyyy/MM/dd/yyyy_MM_dd_HH_mm"
-   | fileNameFormat        | Twitter data file name format | "yyyy_MM_dd_HH_mm"
-   | fileNameExtensionJson | Twitter data file extension | "activity.json.gz"
-   | fileNameExtensionGson | Twitter data file extension for data previous to June 2015 | "activity.gson.gz"
-   | user                  | Bluemix user          | "########"
-   | password              | Bluemix password      | "###########"
-   | hostname              | Bluemix host          | "https://cde-archive.services.dal.bluemix.net/"
-   | startDownloadingAfter | How many seconds after the application have started will the task begin to be executed | 10
-   | timeInterval          | Time interval in seconds that the task will be executed | 60
+| **Key**               | **Meaning**           | **Default**  |
+| --------------------- |-----------------------| -------------|
+| timezone              | Timezone for Decahose requests | "PST"
+| fileNameFormatForURL  | Twitter data path format in hdsf | "yyyy/MM/dd/yyyy_MM_dd_HH_mm"
+| fileNameFormat        | Twitter data file name format | "yyyy_MM_dd_HH_mm"
+| fileNameExtensionJson | Twitter data file extension | "activity.json.gz"
+| fileNameExtensionGson | Twitter data file extension for data previous to June 2015 | "activity.gson.gz"
+| user                  | Bluemix user          | "########"
+| password              | Bluemix password      | "###########"
+| hostname              | Bluemix host          | "https://cde-archive.services.dal.bluemix.net/"
+| startDownloadingAfter | How many seconds after the application have started will the task begin to be executed | 10
+| timeInterval          | Time interval in seconds that the task will be executed | 60
 
-##### Word2Vec [ _tiara.word-2-vec.*_ ]
+#### Word2Vec -- tiara.word-2-vec.\*
 
-   | **Key**               | **Meaning**           | **Default**  |
-   | --------------------- |-----------------------| -------------|
-   | historical.enabled    | Create models for given date range before starting the streaming | false
-   | historical.start-date | Start of date range for computation | "2016-04-21"
-   | historical.end-date   | End of date range for computation | "2016-04-21"
-   | path-to-daily-tweets  | Data path for the token data | ${tiara.decahose-processor.tokens-dir}
-   | path-to-daily-models  | Data path for the models | ${tiara.hadoop-default-fs}"/tiara/models/daily"
-   | col-name-tweet-txt    | Token column name    | ${tiara.decahose-processor.tokens-column}
-   | prefix-tokens-folder-daily | Token data folder name prefix | ${tiara.decahose-processor.post-date-col-name}"="
-   | date-format           | Token data folder name format | "yyyy-MM-dd"
-   | folder-name-model     | Word2Vec model file name | "word2VecModel"
-   | folder-name-word-count | Word count file name | "wordCount"
-   | token-file-name       | New model token file name | "newModel.txt"
-   | use-only-hashtag-handle | Model only uses hashtags and handle tokens | true
-   | run-new-model-at      | Hour of the day to run new model | 1
-   | generate-model-timeinterval | Time interval in seconds that the task will be executed | 86400
-   | parameters.partition-number | Partitions parameter for Word2Vec | 6
-   | parameters.iterations-number | Iterations parameter for Word2Vec | 6
-   | parameters.min-word-count | Minimum word count parameter for Word2Vec | 10
-   | parameters.vector-size | Vector size parameter for Word2Vec | 100
-   | parameters.window-size | Window size parameter for Word2Vec | 5
-   | spark.sql-shuffle-partitions | Number of Spark partitions | 5
-   | spark.UI-port         | Port to bind the Word2Vec UI Spark application | "4041"
-   | spark.executor-memory | Amount of executor memory to be used by the Word2Vec Spark Application | "1g"
-   | spark.cores-max       | Max cores to be used by Spark in the application | 4
-   | spark.executor-cores  | number of cores to be used on each executor | 1
+| **Key**               | **Meaning**           | **Default**  |
+| --------------------- |-----------------------| -------------|
+| historical.enabled    | Create models for given date range before starting the streaming | false
+| historical.start-date | Start of date range for computation | "2016-04-21"
+| historical.end-date   | End of date range for computation | "2016-04-21"
+| path-to-daily-tweets  | Data path for the token data | ${tiara.decahose-processor.tokens-dir}
+| path-to-daily-models  | Data path for the models | ${tiara.hadoop-default-fs}"/tiara/models/daily"
+| col-name-tweet-txt    | Token column name    | ${tiara.decahose-processor.tokens-column}
+| prefix-tokens-folder-daily | Token data folder name prefix | ${tiara.decahose-processor.post-date-col-name}"="
+| date-format           | Token data folder name format | "yyyy-MM-dd"
+| folder-name-model     | Word2Vec model file name | "word2VecModel"
+| folder-name-word-count | Word count file name | "wordCount"
+| token-file-name       | New model token file name | "newModel.txt"
+| use-only-hashtag-handle | Model only uses hashtags and handle tokens | true
+| run-new-model-at      | Hour of the day to run new model | 1
+| generate-model-timeinterval | Time interval in seconds that the task will be executed | 86400
+| parameters.partition-number | Partitions parameter for Word2Vec | 6
+| parameters.iterations-number | Iterations parameter for Word2Vec | 6
+| parameters.min-word-count | Minimum word count parameter for Word2Vec | 10
+| parameters.vector-size | Vector size parameter for Word2Vec | 100
+| parameters.window-size | Window size parameter for Word2Vec | 5
+| spark.sql-shuffle-partitions | Number of Spark partitions | 5
+| spark.UI-port         | Port to bind the Word2Vec UI Spark application | "4041"
+| spark.executor-memory | Amount of executor memory to be used by the Word2Vec Spark Application | "1g"
+| spark.cores-max       | Max cores to be used by Spark in the application | 4
+| spark.executor-cores  | number of cores to be used on each executor | 1
 
-##### Rest API [ _tiara.rest-api.*_ ]
+#### Rest API -- tiara.rest-api.\*
 
-   | **Key**                      | **Meaning**               | **Default**  |
-   | -----------------------------|---------------------------| -------------|
-   | bind-port                    | REST API bind port        | 16666
-   | bind-ip                      | REST API ip address       | "0.0.0.0"
-   | daily-en-tweets-dir          | Data path for the english tweets | ${tiara.decahose-processor.daily-en-tweets-dir}
-   | path-to-daily-models         | Data path for the models  | ${tiara.word-2-vec.path-to-daily-models}
-   | token-file-name              | New model token file name | ${tiara.word-2-vec.token-file-name}
-   | folder-name-model            | Word2Vec model file name  | ${tiara.word-2-vec.folder-name-model}
-   | folder-name-word-count       | Word count file name      | ${tiara.word-2-vec.folder-name-word-count}
-   | date-format                  | Token data folder name format | ${tiara.word-2-vec.date-format}
-   | sentiment-column-name        | Sentiment column name     | ${tiara.decahose-processor.sentiment-column}
-   | tokens-column-name           | Tokens column name        | ${tiara.decahose-processor.tokens-column}
-   | redis-server                 | Redis host                | ${tiara.decahose-processor.redis-server}
-   | redis-port                   | Redis host port           | ${tiara.decahose-processor.redis-port}
-   | redis-key-entity             | Redis token prefix        | ${tiara.decahose-processor.redis-tweet-entity-token-count}
-   | prefix-tokens-folder-daily   | Token data folder name prefix | ${tiara.word-2-vec.prefix-tokens-folder-daily}
-   | cache-graph-membership       | Cache community membership for future calls | true
-   | membership-graph-expiration  | How many seconds community membership is cached | 600
-   | return-only-hashtag-synonyms | getsynonyms call only returns hashtags | true
-   | start-scheduler-after        | How many seconds after the application have started will the scheduler begin to be executed | 0
-   | check-for-new-model-interval | Time interval in seconds that the actor checks for a new model | 600
-   | spark.sql-shuffle-partitions | Number of Spark partitions | 5
-   | spark.UI-port                | Port to bind the Rest API UI Spark application | "4042"
-   | spark.executor-memory        | Amount of executor memory to be used by the Rest API Spark Application | "1g"
-   | spark.cores-max              | Max cores to be used by Spark in the application | 4
-   | spark.executor-cores         | number of cores to be used on each executor | 1
-
+| **Key**                      | **Meaning**               | **Default**  |
+| -----------------------------|---------------------------| -------------|
+| bind-port                    | REST API bind port        | 16666
+| bind-ip                      | REST API ip address       | "0.0.0.0"
+| daily-en-tweets-dir          | Data path for the english tweets | ${tiara.decahose-processor.daily-en-tweets-dir}
+| path-to-daily-models         | Data path for the models  | ${tiara.word-2-vec.path-to-daily-models}
+| token-file-name              | New model token file name | ${tiara.word-2-vec.token-file-name}
+| folder-name-model            | Word2Vec model file name  | ${tiara.word-2-vec.folder-name-model}
+| folder-name-word-count       | Word count file name      | ${tiara.word-2-vec.folder-name-word-count}
+| date-format                  | Token data folder name format | ${tiara.word-2-vec.date-format}
+| sentiment-column-name        | Sentiment column name     | ${tiara.decahose-processor.sentiment-column}
+| tokens-column-name           | Tokens column name        | ${tiara.decahose-processor.tokens-column}
+| redis-server                 | Redis host                | ${tiara.decahose-processor.redis-server}
+| redis-port                   | Redis host port           | ${tiara.decahose-processor.redis-port}
+| redis-key-entity             | Redis token prefix        | ${tiara.decahose-processor.redis-tweet-entity-token-count}
+| prefix-tokens-folder-daily   | Token data folder name prefix | ${tiara.word-2-vec.prefix-tokens-folder-daily}
+| cache-graph-membership       | Cache community membership for future calls | true
+| membership-graph-expiration  | How many seconds community membership is cached | 600
+| return-only-hashtag-synonyms | getsynonyms call only returns hashtags | true
+| start-scheduler-after        | How many seconds after the application have started will the scheduler begin to be executed | 0
+| check-for-new-model-interval | Time interval in seconds that the actor checks for a new model | 600
+| spark.sql-shuffle-partitions | Number of Spark partitions | 5
+| spark.UI-port                | Port to bind the Rest API UI Spark application | "4042"
+| spark.executor-memory        | Amount of executor memory to be used by the Rest API Spark Application | "1g"
+| spark.cores-max              | Max cores to be used by Spark in the application | 4
+| spark.executor-cores         | number of cores to be used on each executor | 1
 
 ## <a name="bluemix"></a> Getting Access to Bluemix
 
