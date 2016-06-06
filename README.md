@@ -144,7 +144,186 @@ The log file for each application file will be at:
 
 To send a request to the REST API just open a browser and use one of the URLs specified below.
 
-**_NEED TO ADD THIS_**
+#### Get Synonyms
+
+Sample URL: <http://localhost:16666/tiara/getsynonyms?searchterm=%23spark&count=10>
+
+Parameters:
+
+1. **searchterm**: Term to search for related terms
+2. **count**: The number of related terms to return
+
+
+#### Response
+
+The getsynonyms request retrieves the top X related terms to the search term with their relation and the count of each term. The response is in JSON format.
+
+```
+{
+   "success":true,
+   "status":0,
+   "searchTerm":"#spark",
+   "searchTermCount":27,
+   "distance":[
+      [
+         "#hadoop",
+         "1209152.8714422116", // relation to search term
+         "72" // term count
+      ],
+      ... // Top X terms related to your search
+   ]
+}
+```
+
+#### Get Top Terms
+
+
+Sample URL: <http://localhost:16666/tiara/gettopterms?count=20>
+
+Parameters:
+
+1. **count**: number of terms to retrieve
+
+#### Response
+
+The gettopterms request retrieves the top X hashtags and handles. The response is in JSON format.
+
+```
+{
+   "success":true,
+   "status":0,
+   "hashtags":[
+      {
+         "term":"#whcd",
+         "score":56104 // term count
+      },
+      ...
+   ],
+   "handles":[
+      {
+         "term":"@youtube",
+         "score":66485
+      },
+      ...
+   ]
+}
+```
+
+#### Get Communities
+
+
+Sample URL: <http://localhost:16666/tiara/getcommunities?searchterms=%23spark,%23apm,%23dataanalytics,%23developer,%23predictiveanalytics,%23businessintelligence,%23hadoop,%23software,%23devops,%23datamining,%23deeplearning,%23opensource,%23abdsc,%23mobility,%23paas,%23nosql,%23dataviz,%23containers,%23docker,%23microservices,%23datascience&get3d=false&top=20>
+
+Parameters:
+
+1. **searchterms**: Build communities from tweets with these terms
+2. **get3d**: Return two or three dimensional coordinate data
+
+
+#### Response
+
+The getcommunities request retrieves a users graph and coordinate data for plotting the communities visualization. The response is in JSON format.
+
+```
+{
+   "success":true,
+   "status":0,
+   "node":[
+      "label",
+      "id",
+      "degree",
+      "community",
+      "x",
+      "y",
+      "z"
+   ],
+   "edge":[
+      "id",
+      "source",
+      "target",
+      "weight"
+   ],
+   "communities":{
+      "nodes":[
+         [
+            "IBMDevOps",
+            "42",
+            8,
+            "0",
+            21.480810165405273,
+            95.94647216796875,
+            0
+         ],
+         ...
+      ],
+      "edges":[
+         [
+            "IBMDevOps",
+            "41",
+            "42",
+            "2.0"
+         ],
+         ...
+      ]
+   }
+}
+
+```
+
+#### Get Communities Details
+
+
+Sample URL: <http://loaclhost:16666/tiara/getcommunitiesdetails?searchterms=%23spark,%23apm,%23dataanalytics,%23developer,%23predictiveanalytics,%23businessintelligence,%23hadoop,%23software,%23devops,%23datamining,%23deeplearning,%23opensource,%23abdsc,%23mobility,%23paas,%23nosql,%23dataviz,%23containers,%23docker,%23microservices,%23datascience&count=20>
+
+Parameters:
+
+1. **searchterm**: Terms to build the communities from
+2. **count**: The number of wordcloud terms to return
+
+
+#### Response
+
+The getcommunitiesdetails request retrieves sentiment and wordcloud data for the communities based on the search terms. The wordcloud data represents the top X most used terms in a communities tweets. The response is in JSON format.
+
+```
+{
+   "success":true,
+   "sentiment":{
+      "communityID":[
+         "positive",
+         "negative",
+         "neutral"
+      ]
+   },
+   "wordcloud":{
+      "communityID":[
+         "word",
+         "count"
+      ]
+   },
+   "communitydetails":{
+      "sentiment":{
+         "0":[
+            6,
+            3,
+            132
+         ],
+         ... // for each community found for the given search terms
+      },
+      "wordcloud":{
+         "0":[
+            [
+               "#devops",
+               106
+            ],
+            ... // top X terms for the community
+         ],
+         ... // for each community found for the given search terms
+      }
+   }
+}
+
+```
 
 ### <a name="rrconfig"></a> Explaining the RedRock v2 Configuration File
 
