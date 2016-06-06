@@ -19,7 +19,7 @@ object W2VUtils extends Logging {
 //  val sparkContext = new SparkContext(new SparkConf)
 //  val sqlContext = new HiveContext( sparkContext )
 
-  def computeW2VForWindow(sqlContext: SQLContext, prefix: String, start: String, count: Int): Unit = {
+  def computeW2VForWindow(sqlContext: SQLContext, hashtagOnly: Boolean, prefix: String, start: String, count: Int): Unit = {
     val formatter = new SimpleDateFormat("yyyy-MM-dd")
     val startDate = formatter.parse(start)
     val startCal = Calendar.getInstance()
@@ -33,7 +33,7 @@ object W2VUtils extends Logging {
       .filter(col("postedDate") < lit(end))
       .select("toks")
 
-    val tweetsTokensRDD = if (true)
+    val tweetsTokensRDD = if (hashtagOnly)
       tweetsTokens.select(getHashtagsAndHandles(col("toks")).as("toks"))
         .filter(!isEmpty(col("toks")))
         .rdd
@@ -66,7 +66,7 @@ object W2VUtils extends Logging {
     logInfo(s"Word2vec model stored for $count / $start")
   }
 
-  def batchComputeW2V(sqlContext: SQLContext, prefix: String, startStr: String, endStr: String, count: Int): Unit = {
+  def batchComputeW2V(sqlContext: SQLContext, hashtagOnly: Boolean = true, prefix: String, startStr: String, endStr: String, count: Int): Unit = {
     val formatter = new SimpleDateFormat("yyyy-MM-dd")
 
 //    val startStr = "2016-01-03"
@@ -82,7 +82,7 @@ object W2VUtils extends Logging {
     endCal.setTime(endDate)
 
     while (nowCal.before(endCal)) {
-      computeW2VForWindow(sqlContext, prefix, formatter.format(nowCal.getTime), count)
+      computeW2VForWindow(sqlContext, hashtagOnly, prefix, formatter.format(nowCal.getTime), count)
       nowCal.add(java.util.Calendar.DAY_OF_MONTH, count)
     }
 

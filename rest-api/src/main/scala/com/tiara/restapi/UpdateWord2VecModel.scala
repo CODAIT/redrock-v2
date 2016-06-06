@@ -127,6 +127,43 @@ object UpdateWord2VecModel extends Logging {
         "failure: correct format: YYYY-MM-DD"
     }
   }
+
+  def updateModel1(w2vPath: String, rtStartDate: String, rtEndDate: String): String = {
+    logInfo(s" updateModel1: ${w2vPath}, ${rtStartDate}, ${rtEndDate}")
+    try {
+      InMemoryData.word2VecModel = Word2VecModel.load(ApplicationContext.sparkContext,
+        Config.appConf.getString("hadoop-default-fs") + w2vPath)
+      // Using counters from Redis
+      // InMemoryData.frequency = ApplicationContext.sqlContext.read.parquet(s"$modelPath/$freqFolder")
+      val newRTDF = ApplicationContext.sqlContext.read.parquet(s"$englishPath")
+        .filter(col("postedDate") >= lit(rtStartDate))
+        .filter(col("postedDate") < lit(rtEndDate))
+        .filter("verb = 'share'")
+        .withColumn("stringtoks", stringTokens(col(COL_TOKENS)))
+        .select(col("actor.preferredUsername").as("uid"),
+          col("object.actor.preferredUsername").as("ouid"),
+          /* Since the community graph will be filtered by the results
+           * from the word2vec models, and the word2vec model is computed
+           * using only the tokens, we don't need to use the tweet body,
+           * we can use a string built from the tokens (less data in memory)
+           */
+          col("stringtoks").as(COL_TOKENS),
+          col(COL_SENTIMENT))
+      // Change in memory DF
+      if (InMemoryData.retweetsENDF != null) InMemoryData.retweetsENDF.unpersist(true)
+      InMemoryData.retweetsENDF = newRTDF
+      InMemoryData.retweetsENDF.persist()
+      logInfo(s"retweet count for [ ${rtStartDate}, ${rtEndDate} ]: ${InMemoryData.retweetsENDF.count}")
+
+      // Get string reference to the date for the model and RT DF
+      InMemoryData.date = rtStartDate
+
+      "success"
+    } catch {
+      case e: Exception => logError("Could not validate date",e)
+        "failure: correct format: YYYY-MM-DD"
+    }
+  }
 }
 
 object InMemoryData{

@@ -30,7 +30,7 @@ trait TiaraService extends HttpService {
   val communityGraph = path("getcommunities") & parameters('searchterms, 'get3d.as[Boolean])
   val topTerms = path("gettopterms") & parameters('count.as[Int])
   val communityDetails = path("getcommunitiesdetails") & parameters('searchterms, 'count.as[Int])
-  val updateModel = path("updateModel") & parameters('date)
+  val updateModel = path("updateModel") & parameters('w2vpath, 'rtstartdate, 'rtenddate)
   val gephiLayoutService = path("gephi-layout") & parameters('graph, 'threshold.as[Double])
 
   val tiaraRoute =
@@ -82,11 +82,11 @@ trait TiaraService extends HttpService {
           }
         }
       } ~
-      updateModel { (date) =>
+      updateModel { (w2vPath, rtStartDate, rtEndDate) =>
         get{
           respondWithMediaType(`application/json`) {
             complete {
-              UpdateWord2VecModel.updateModel(date)
+              UpdateWord2VecModel.updateModel1(w2vPath, rtStartDate, rtEndDate)
             }
           }
         }
