@@ -41,13 +41,13 @@ Install the latest version of redis
 brew install redis
 ```
 
-#### Spark
+#### Apache Spark
 
-Download **pre-built Spark 1.6.1 for Hadoop 2.6 and later** and decompress it (<http://spark.apache.org/downloads.html>).
+Download **pre-built Apache Spark 1.6.1 for Hadoop 2.6 and later** and decompress it (<http://spark.apache.org/downloads.html>).
 
-###### Configuring Spark standalone mode
+###### Configuring Apache Spark in standalone mode
 
-1. Configure environment variable SPARK_HOME at your shell initialization file with the path to your Spark directory
+1. Configure environment variable SPARK_HOME at your shell initialization file with the path to the directory where your Apache Spark is installed
 
     * For example: at your **/home/.profile** add the line **export SPARK_HOME=/Users/YOURUSERNAME/Spark/spark-1.6.1-bin-hadoop2.6**
 2. Save file _conf/slaves.template_ as _conf/slaves_
@@ -68,7 +68,7 @@ Download **pre-built Spark 1.6.1 for Hadoop 2.6 and later** and decompress it (<
 
 4. Save file _conf/log4j.properties.template_ as _conf/log4j.properties_ **log4j.rootCategory=WARN**. Save it as
 
-Note: The above spark setup is considering a machine with at least:
+Note: The above Apache Spark setup is considering a machine with at least:
 
 1. 16gb of memory RAM
 2. 4 cores (8 logical cores)
@@ -81,24 +81,24 @@ Install sbt plugin. More information at <http://www.scala-sbt.org/0.13/docs/Inst
 
 Before running **RedRock v2** you must start all the following applications:
 
-1. **Hadoop**: Use command **hstart** (in case you followed the installation instruction at the Hadoop section)
+1. **Apache Hadoop**: Use command **hstart** (in case you followed the installation instruction at the Hadoop section)
 2. **Redis**: Run **redis-server** (note: you may want to use nohup for it to run in the background)
-3. **Spark**: Inside Spark home path use command **./sbin/start-all.sh**
+3. **Apache Spark**: Inside Apache Spark home path use command **./sbin/start-all.sh**
 
 ### Configuring RedRock v2
 
 All the configurations for RedRock v2 are at: **TIARA_HOME/conf/tiara-app.conf.template**. Copy this file and save at the same location without the .template extension.
 
-All the default configurations are considering that you followed all the steps above and you haven't changed any configuration for Spark. In case you have a different setup, please take a look at the section **[Explaining the RedRock v2 Configuration File](#rrconfig)**
+All the default configurations are considering that you followed all the steps above and you haven't changed any configurations for Apache Spark. In case you have a different setup, please take a look at the section **[Explaining the RedRock v2 Configuration File](#rrconfig)**
 
 ### Understanding Data Directories
 
-The pre-process of the tweets is going to happen through Spark. Spark will use the following directories configured in **TIARA_HOME/conf/tiara-app.conf.template**:
+The pre-process of the tweets is going to happen through Apache Spark. Apache Spark will use the following directories configured in **TIARA_HOME/conf/tiara-app.conf.template**:
 
 1. **tiara.decahose-processor.historical.data-path**: Any data here will be processed before the streaming starts in the Decahose processor. The variable **tiara.decahose-processor.historical.enabled** controls if you process the historical data.
-2. **tiara.decahose-processor.decahose-dir**: The poll Decahose actor will put Decahose data here and Spark streaming in the Decahose processor will monitor this directory in order to process any new data.
+2. **tiara.decahose-processor.decahose-dir**: The poll Decahose actor will put Decahose data here and Apache Spark streaming in the Decahose processor will monitor this directory in order to process any new data.
 3. **tiara.decahose-processor.daily-en-tweets-dir**: The Decahose processor stores all the english tweets for each day here for use by the REST API.
-4. **tiara.decahose-processor.tokens-dir**: = The Decahose processor stores all the word token data for use by Spark Word2Vec here
+4. **tiara.decahose-processor.tokens-dir**: = The Decahose processor stores all the word token data for use by Apache Spark Word2Vec here
 5. **tiara.word-2-vec.path-to-daily-models**: = This is where Word2Vec places models after computation
 
 ### Downloading Twitter Data
@@ -117,7 +117,7 @@ hadoop fs -put DEST_FOLDER/historical*.json.gz /data/rawTweets
 
 #### Decahose Streaming
 
-RedRock v2 Streaming uses _Spark Streaming_ application, which monitors an HDFS directory for new files.
+RedRock v2 Streaming uses _Apache Spark Streaming_ application, which monitors an HDFS directory for new files.
 
 You can simulate a streaming processing by pasting a file on the streaming directory being monitored while the streaming application is running. The file should be processed on the next streaming bach.
 
