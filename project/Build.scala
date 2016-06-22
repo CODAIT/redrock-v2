@@ -152,6 +152,8 @@ object TiaraBuild extends Build{
   import Dependencies._
   import BuildSettings._
 
+  lazy val compileScalastyle = taskKey[Unit]("compileScalastyle")
+
   lazy val parent = Project(
     id = "tiara-parent",
     base = file("."),
@@ -235,7 +237,9 @@ object TiaraBuild extends Build{
       connectInput in run := true,
       scalastyleConfig in Compile :=  file(".") / "project" / "scalastyle-config.xml",
       assemblyJarName in assembly := "tiara-decahose-poll-actor.jar",
-      javaOptions += "-Xmx2G"
+      javaOptions += "-Xmx2G",
+      compileScalastyle := scalastyle.in(Compile).toTask("").value,
+      (compile in Compile) <<= (compile in Compile) dependsOn compileScalastyle
     ))
 
 }
