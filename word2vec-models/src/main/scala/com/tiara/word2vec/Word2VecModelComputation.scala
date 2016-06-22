@@ -1,3 +1,19 @@
+/**
+ * (C) Copyright IBM Corp. 2015, 2016
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.tiara.word2vec
 
 import java.text.SimpleDateFormat
@@ -14,32 +30,34 @@ import org.apache.spark.sql.functions._
 /**
  * Created by barbaragomes on 4/15/16.
  */
-class Word2VecModelComputation(val date:String) extends Logging{
+class Word2VecModelComputation(val date: String) extends Logging {
 
   import Word2VecModelComputation._
 
   def generateModel(): Unit = {
     val tokensPath = s"""${Config.word2vecConf.getString("path-to-daily-tweets")}/$date"""
-    if(ApplicationContext.hadoopFS.exists(new Path(tokensPath))) {
+    if (ApplicationContext.hadoopFS.exists(new Path(tokensPath))) {
       /* Read all tweets tokens inside the directory - Contain just EN */
       val tweetsTokens = ApplicationContext.sqlContext
         .read.parquet(tokensPath)
         .select(tokens_col)
 
-      val tweetsTokensRDD = if (useOnlyHashAndHandles)
-                              tweetsTokens.select(getHashtagsAndHandles(col(tokens_col)).as(tokens_col))
-                                .filter(!isEmpty(col(tokens_col)))
-                                .rdd
-                            else
-                              tweetsTokens.rdd
+      val tweetsTokensRDD =
+        if (useOnlyHashAndHandles) {
+          tweetsTokens.select(getHashtagsAndHandles(col(tokens_col)).as(tokens_col))
+            .filter(!isEmpty(col(tokens_col)))
+            .rdd
+        } else {
+          tweetsTokens.rdd
+        }
 
-      val rddToWord2Vec = tweetsTokensRDD.map((r:Row)=> r.getAs[WrappedArray[String]](0))
+      val rddToWord2Vec = tweetsTokensRDD.map((r: Row) => r.getAs[WrappedArray[String]](0))
 
       val folder = s"""$modelFolder/$date"""
 
-      //Computing and storing frequency analysis
+      // Computing and storing frequency analysis
       // Use counters from redis
-      //saveWordCount(tweetsTokensRDD, folder)
+      // saveWordCount(tweetsTokensRDD, folder)
 
       // Create word2Vec
       val w2v = new Word2Vec()
@@ -54,22 +72,24 @@ class Word2VecModelComputation(val date:String) extends Logging{
       val w2v_model = w2v.fit(rddToWord2Vec)
       logInfo(s"Word2vec model computed for day == $date")
       logInfo(s"Word2vec Size == ${w2v_model.getVectors.size}")
-      w2v_model.save(ApplicationContext.sparkContext,s"$folder/${Config.word2vecConf.getString("folder-name-model")}")
+      w2v_model.save(ApplicationContext.sparkContext,
+        s"$folder/${Config.word2vecConf.getString("folder-name-model")}")
       logInfo(s"Word2vec model stored for day == $date")
 
       // Write token file to let the rest-api know when there is a new model
       writeNewFileToken(date)
-    }else{
+    } else {
       logInfo(s"No tokens found for file: $tokensPath")
     }
   }
 
-  private def writeNewFileToken(date: String) ={
+  private def writeNewFileToken(date: String) = {
     try {
-      val hdfs_file = ApplicationContext.hadoopFS.create(new Path(s"""${modelFolder}/$tokenFileName"""))
+      val hdfs_file =
+        ApplicationContext.hadoopFS.create(new Path(s"""${modelFolder}/$tokenFileName"""))
       hdfs_file.writeBytes(date)
       hdfs_file.close()
-    }catch{
+    } catch {
       case e: Exception => logError(s"Token for day $date not generated.", e)
     }
   }
@@ -78,9 +98,12 @@ class Word2VecModelComputation(val date:String) extends Logging{
     import ApplicationContext.sqlContext.implicits._
 
     logInfo("Computing Frequency analysis")
-    val freq = (filtered.flatMap(line => line.getSeq[String](0).map((_,1)))
-               .reduceByKey((a, b) => a + b)
-                .filter(_._2 >= Config.word2vecConf.getInt("parameters.min-word-count"))).toDF("word","freq")
+    val freq = (
+      filtered
+        .flatMap(line => line.getSeq[String](0).map((_, 1)))
+        .reduceByKey((a, b) => a + b)
+        .filter(_._2 >= Config.word2vecConf.getInt("parameters.min-word-count"))
+      ).toDF("word", "freq")
     logInfo(s"Frequency Analysis ended. Total words: ${freq.count()}")
     freq.write.parquet(s"$folderPath/${Config.word2vecConf.getString("folder-name-word-count")}")
     logInfo(s"Frequency Analysis Stored")
@@ -88,7 +111,7 @@ class Word2VecModelComputation(val date:String) extends Logging{
 
 }
 
-object Word2VecModelComputation extends Logging{
+object Word2VecModelComputation extends Logging {
 
   // Column name that contains tweet txt
   val tokens_col = Config.word2vecConf.getString("col-name-tweet-txt")
@@ -97,8 +120,9 @@ object Word2VecModelComputation extends Logging{
   val modelFolder = Config.word2vecConf.getString("path-to-daily-models")
   val tokenFileName = Config.word2vecConf.getString("token-file-name")
 
-  def computeHistoricalWord2Vec():Unit = {
-    val folderDateFormat:SimpleDateFormat = new SimpleDateFormat(Config.word2vecConf.getString("date-format"))
+  def computeHistoricalWord2Vec(): Unit = {
+    val folderDateFormat: SimpleDateFormat =
+      new SimpleDateFormat(Config.word2vecConf.getString("date-format"))
     val folderPrefix = Config.word2vecConf.getString("prefix-tokens-folder-daily")
 
     val startDate = folderDateFormat.parse(Config.word2vecConf.getString("historical.start-date"))
@@ -106,14 +130,14 @@ object Word2VecModelComputation extends Logging{
 
     // Date iterator
     var currDate = startDate
-    while(endDate.getTime - currDate.getTime >= 0){
+    while (endDate.getTime - currDate.getTime >= 0) {
       val dayFolder = s"$folderPrefix${folderDateFormat.format(currDate)}"
       logInfo(s"Historical model for: $dayFolder")
 
-      try{
+      try {
         val w2v = new Word2VecModelComputation(dayFolder)
         w2v.generateModel()
-      }catch{
+      } catch {
         case e: Exception => logError(s"Could not generate historical model for $dayFolder", e)
       }
 

@@ -219,7 +219,9 @@ object TiaraBuild extends Build{
       fork := true,
       connectInput in run := true,
       scalastyleConfig in Compile :=  file(".") / "project" / "scalastyle-config.xml",
-      assemblyJarName in assembly := "tiara-word2vec-model.jar"
+      assemblyJarName in assembly := "tiara-word2vec-model.jar",
+      compileScalastyle := scalastyle.in(Compile).toTask("").value,
+      (compile in Compile) <<= (compile in Compile) dependsOn compileScalastyle
     ))
 
   lazy val decahosePollActor = Project(

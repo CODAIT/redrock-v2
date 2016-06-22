@@ -1,3 +1,19 @@
+/**
+ * (C) Copyright IBM Corp. 2015, 2016
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.tiara.word2vec
 
 import java.text.SimpleDateFormat
@@ -16,10 +32,13 @@ import org.apache.spark.{Logging, SparkConf, SparkContext}
   */
 object W2VUtils extends Logging {
 
-//  val sparkContext = new SparkContext(new SparkConf)
-//  val sqlContext = new HiveContext( sparkContext )
+  // val sparkContext = new SparkContext(new SparkConf)
+  // val sqlContext = new HiveContext( sparkContext )
 
-  def computeW2VForWindow(sqlContext: SQLContext, hashtagOnly: Boolean, prefix: String, start: String, count: Int): Unit = {
+  def computeW2VForWindow(sqlContext: SQLContext,
+                          hashtagOnly: Boolean,
+                          prefix: String,
+                          start: String, count: Int): Unit = {
     val formatter = new SimpleDateFormat("yyyy-MM-dd")
     val startDate = formatter.parse(start)
     val startCal = Calendar.getInstance()
@@ -33,20 +52,21 @@ object W2VUtils extends Logging {
       .filter(col("postedDate") < lit(end))
       .select("toks")
 
-    val tweetsTokensRDD = if (hashtagOnly)
+    val tweetsTokensRDD = if (hashtagOnly) {
       tweetsTokens.select(getHashtagsAndHandles(col("toks")).as("toks"))
         .filter(!isEmpty(col("toks")))
         .rdd
-    else
+    } else {
       tweetsTokens.rdd
+    }
 
-    val rddToWord2Vec = tweetsTokensRDD.map((r:Row)=> r.getAs[WrappedArray[String]](0))
+    val rddToWord2Vec = tweetsTokensRDD.map((r: Row) => r.getAs[WrappedArray[String]](0))
 
-    //    val folder = s"""$modelFolder/$start"""
+    // val folder = s"""$modelFolder/$start"""
 
-    //Computing and storing frequency analysis
+    // Computing and storing frequency analysis
     // Use counters from redis
-    //saveWordCount(tweetsTokensRDD, folder)
+    // saveWordCount(tweetsTokensRDD, folder)
 
     // Create word2Vec
     val w2v = new Word2Vec()
@@ -62,15 +82,20 @@ object W2VUtils extends Logging {
     logInfo(s"Word2vec model computed for $count / $start")
     logInfo(s"Word2vec Size == ${w2v_model.getVectors.size}")
     w2v_model.save(sqlContext.sparkContext, s"${prefix}/models/days=${count}/${start}/w2v")
-    //      s"$folder/${Config.word2vecConf.getString("folder-name-model")}")
+    // s"$folder/${Config.word2vecConf.getString("folder-name-model")}")
     logInfo(s"Word2vec model stored for $count / $start")
   }
 
-  def batchComputeW2V(sqlContext: SQLContext, hashtagOnly: Boolean = true, prefix: String, startStr: String, endStr: String, count: Int): Unit = {
+  def batchComputeW2V(sqlContext: SQLContext,
+                      hashtagOnly: Boolean = true,
+                      prefix: String,
+                      startStr: String,
+                      endStr: String,
+                      count: Int): Unit = {
     val formatter = new SimpleDateFormat("yyyy-MM-dd")
 
-//    val startStr = "2016-01-03"
-//    val endStr = "2016-05-14"
+    // val startStr = "2016-01-03"
+    // val endStr = "2016-05-14"
 
     val startDate = formatter.parse(startStr)
     val startCal = Calendar.getInstance()
