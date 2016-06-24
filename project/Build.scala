@@ -109,40 +109,42 @@ object Dependency {
   val sprayCan       = "io.spray"          %%  "spray-can"      % Version.sprayV
   val sprayRouting   = "io.spray"          %%  "spray-routing"  % Version.sprayV
   val akkaActor      = "com.typesafe.akka" %%  "akka-actor"     % Version.akkaV
-  val spec           = "org.specs2"        %%  "specs2-core"     % "2.3.7" % "test"
+  val spec           = "org.specs2"        %%  "specs2-core"    % "2.3.7"        % "test"
   
   //Config library
-  val configLib      = "com.typesafe" % "config" % Version.typesafeConfig
+  val configLib      = "com.typesafe"       % "config"          % Version.typesafeConfig
 
   // Json library
   val playJson       = "com.typesafe.play" %% "play-json"       % Version.typesafePlayJSON
 
   //csv library
-  val readCSV       = "com.databricks"    %% "spark-csv"  % "1.1.0"
+  val readCSV        = "com.databricks"    %% "spark-csv"       % "1.1.0"
 
   //Download files from bluemix
-  val codec           = "commons-codec" % "commons-codec" % "1.6"
-  val apacheIO        = "commons-io" % "commons-io" % "2.4"
-  val apacheLang      = "org.apache.commons" % "commons-lang3" % "3.4"
+  val codec          = "commons-codec"      % "commons-codec"    % "1.6"
+  val apacheIO       = "commons-io"         % "commons-io"       % "2.4"
+  val apacheLang     = "org.apache.commons" % "commons-lang3"    % "3.4"
 
   //hadoop
-  val hadoopCom = "org.apache.hadoop" % "hadoop-common" % "2.7.2"
-  val hadoophdfs = "org.apache.hadoop" % "hadoop-hdfs" % "2.7.2"
+  val hadoopCom      = "org.apache.hadoop"  % "hadoop-common"    % "2.7.2"
+  val hadoophdfs     = "org.apache.hadoop"  % "hadoop-hdfs"      % "2.7.2"
 
-
-  val jedis           = "redis.clients" % "jedis" % "2.8.1"
+  val jedis          = "redis.clients"      % "jedis"            % "2.8.1"
 }
 
 object Dependencies {
   import Dependency._
 
-  val decahoseDependencies = Seq(sparkCore, sparkSQL, sparkHive, sparkStreaming, readCSV, configLib, akkaActor,
-                                codec,apacheLang,apacheIO,jedis)
+  val decahoseDependencies =
+    Seq(sparkCore, sparkSQL, sparkHive, sparkStreaming, readCSV, configLib, akkaActor, codec,
+      apacheLang ,apacheIO, jedis)
 
-  val decahoseActorDependencies = Seq(configLib, akkaActor, codec,apacheLang,apacheIO,hadoopCom, hadoophdfs)
+  val decahoseActorDependencies =
+    Seq(configLib, akkaActor, codec, apacheLang, apacheIO, hadoopCom, hadoophdfs)
 
-  val restAPIDependecies = Seq(sparkCore, sparkSQL, sparkHive, sparkMlLib, playJson,
-    sprayCan, sprayRouting, akkaActor, configLib,spec, jedis)
+  val restAPIDependecies =
+    Seq(sparkCore, sparkSQL, sparkHive, sparkMlLib, playJson, sprayCan, sprayRouting, akkaActor,
+      configLib, spec, jedis)
 
   val word2VecDependencies = Seq(sparkCore, sparkSQL, sparkHive, sparkMlLib, akkaActor)
 }
