@@ -1,3 +1,19 @@
+/**
+ * (C) Copyright IBM Corp. 2015, 2016
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.tiara.restapi
 
 /**
@@ -10,7 +26,7 @@ import scala.concurrent.{Future, future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Success, Failure}
 
-object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
+object ExecuteWord2VecAndFrequencyAnalysis extends Logging {
 
   val redisCountKeySufix = Config.restapi.getString("redis-key-entity")
   val objcName = "distance"
@@ -22,10 +38,11 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
     logInfo(s"Get synonyms for term: $searchTerm.")
     logInfo(s"Required terms: $number.")
 
-    val result = future {getSynonymsFrequencyAndDistance(searchTerm.toLowerCase(),number)}
+    val result = future {getSynonymsFrequencyAndDistance(searchTerm.toLowerCase(), number)}
 
     result.recover{
-      case e: Exception => logError("Could not execute request.", e); Json.stringify(buildResponse(searchTerm,false))
+      case e: Exception =>
+        logError("Could not execute request.", e); Json.stringify(buildResponse(searchTerm, false))
     }
 
   }
@@ -33,19 +50,23 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
   private def getSynonymsFrequencyAndDistance(searchTerm: String, number: Int): String = {
 
     val startTime = System.nanoTime()
-    val synonyms = getSynonyms(searchTerm,number)
+    val synonyms = getSynonyms(searchTerm, number)
 
-    var response:JsObject = buildResponse(searchTerm,false)
+    var response: JsObject = buildResponse(searchTerm, false)
 
-    if(synonyms != null && !synonyms.isEmpty){
+    if (synonyms != null && !synonyms.isEmpty) {
       val frequency = getFrequency(synonyms.map{case (word, dist) => s"$word"})
-      if(frequency != null){
-        val result:List[JsArray] = (synonyms ++ frequency).groupBy(_._1)
-          .values
-          .map(result => Json.arr(result(0)._1.toString, result(0)._2.toString, result(1)._2.toString)).toList
-        response = buildResponse(searchTerm,result = result)
+      if (frequency != null) {
+        val result: List[JsArray] =
+          (synonyms ++ frequency)
+            .groupBy(_._1)
+            .values
+            .map(result =>
+              Json.arr(result(0)._1.toString, result(0)._2.toString, result(1)._2.toString))
+            .toList
+        response = buildResponse(searchTerm, result = result)
       }
-    }else if(synonyms.isEmpty){
+    } else if (synonyms.isEmpty) {
       // If is empty, the search term was not present on the word2vec vocabulary
       response = buildResponse(searchTerm)
     }
@@ -56,45 +77,47 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
     Json.stringify(response)
   }
 
-  private def buildResponse(searchTerm: String, success: Boolean = true, result: List[JsArray] = null):JsObject = {
+  private def buildResponse(searchTerm: String,
+                            success: Boolean = true,
+                            result: List[JsArray] = null): JsObject = {
     val response = Json.obj("success" -> success) ++
       Json.obj("status" -> 0) ++
       Json.obj("searchTerm" -> searchTerm) ++
       Json.obj("searchTermCount" -> getSearchTermFrequency(searchTerm))
       objDescription
-    if(!success)
+    if (!success) {
       response ++ Json.obj(objcName -> JsNull)
-    else if(result == null){
+    } else if (result == null) {
       response ++ Json.obj(objcName -> Json.arr())
-    }else{
+    } else {
       response ++ Json.obj(objcName -> result)
     }
   }
 
-  private def getFrequency(synonyms: Array[String]): Array[(String,Int)] ={
+  private def getFrequency(synonyms: Array[String]): Array[(String, Int)] = {
     val jedis = ApplicationContext.jedisPool.getResource
     try {
-      var response: Array[(String,Int)] = Array.empty
+      var response: Array[(String, Int)] = Array.empty
       for(synonym <- synonyms){
         var key = s"${InMemoryData.date}:${redisCountKeySufix}"
         val startWith = synonym.charAt(0)
-        if(startWith == '#' || startWith =='@'){
+        if (startWith == '#' || startWith =='@') {
           key = s"$key${startWith}"
-        }else{
+        } else {
           key = s"${key}S"
         }
         // Return zero if the words is not on redis. That should not happen frequently
-        val redisReponse = jedis.zscore(key,synonym)
-        val freq =  if(redisReponse == null) 0 else redisReponse.toInt
+        val redisReponse = jedis.zscore(key, synonym)
+        val freq = if (redisReponse == null) 0 else redisReponse.toInt
         response = response :+ (synonym, freq)
       }
       response
-      /* Using counters from redis
-      val inString = synonyms.mkString("(", ",", ")")
-      Word2Vec.frequency.where(s"word in $inString")
-        .collect()
-        .map(result => (result(0).toString, result(1).asInstanceOf[Int]))*/
-    } catch{
+      // Using counters from redis
+      // val inString = synonyms.mkString("(", ",", ")")
+      // Word2Vec.frequency.where(s"word in $inString")
+      //   .collect()
+      //   .map(result => (result(0).toString, result(1).asInstanceOf[Int]))
+    } catch {
       case e: Exception => logError("Could not get freq count", e); null
     } finally {
       jedis.close()
@@ -113,32 +136,33 @@ object ExecuteWord2VecAndFrequencyAnalysis extends Logging{
       }
       val redisReponse = jedis.zscore(key, searchTerm)
       if (redisReponse == null) 0 else redisReponse.toInt
-    }catch{
-      case e:Exception => logError("Could not get freq for search term", e); 0
+    } catch {
+      case e: Exception => logError("Could not get freq for search term", e); 0
     } finally {
       jedis.close()
     }
   }
 
-  private def getSynonyms(searchTerm: String, number: Int):Array[(String,Double)]={
+  private def getSynonyms(searchTerm: String, number: Int): Array[(String, Double)] = {
     try {
-      if(onlyHashtags){
+      if (onlyHashtags) {
         logInfo("Only Hashtag mode")
-        // Testing shows that 'findSynonyms' is very fast, even when returning a large number of results
+        // Testing shows that 'findSynonyms' is very fast,
+        // even when returning a large number of results
         InMemoryData.word2VecModel.findSynonyms(searchTerm, number*20)
           .filter(syn => syn._1.startsWith("#"))
           .take(number)
           .map(result => (result._1, result._2))
-      }else{
+      } else {
         InMemoryData.word2VecModel.findSynonyms(searchTerm, number)
           .map(result => (result._1, result._2))
       }
     } catch {
-      case notOnvac:IllegalStateException => {
+      case notOnvac: IllegalStateException => {
         logInfo(s"$searchTerm is not on the vocabulary")
-        Array.empty[(String,Double)]
+        Array.empty[(String, Double)]
       }
-      case e:Exception => logError(s"Could not get synonyms for $searchTerm", e); null
+      case e: Exception => logError(s"Could not get synonyms for $searchTerm", e); null
     }
   }
 

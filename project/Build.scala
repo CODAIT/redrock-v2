@@ -160,7 +160,9 @@ object TiaraBuild extends Build{
     aggregate = Seq(restapi, decahoseProcessor, word2vecModelGeneration, decahosePollActor),
     settings = rootbuildSettings ++ Seq(
       aggregate in update := false,
-      scalastyleConfig in Compile :=  file(".") / "project" / "scalastyle-config.xml"
+      scalastyleConfig in Compile :=  file(".") / "project" / "scalastyle-config.xml"/*,
+      compileScalastyle := scalastyle.in(Compile).toTask("").value,
+      (compile in Compile) <<= (compile in Compile) dependsOn compileScalastyle*/
     )
   )
 
@@ -185,7 +187,9 @@ object TiaraBuild extends Build{
         case x =>
           val oldStrategy = (assemblyMergeStrategy in assembly).value
           oldStrategy(x)
-      }
+      }/*,
+      compileScalastyle := scalastyle.in(Compile).toTask("").value,
+      (compile in Compile) <<= (compile in Compile) dependsOn compileScalastyle*/
     ))
 
   lazy val decahoseProcessor = Project(
@@ -202,7 +206,9 @@ object TiaraBuild extends Build{
       fork := true,
       connectInput in run := true,
       scalastyleConfig in Compile :=  file(".") / "project" / "scalastyle-config.xml",
-      assemblyJarName in assembly := "tiara-decahose-processor.jar"
+      assemblyJarName in assembly := "tiara-decahose-processor.jar"/*,
+      compileScalastyle := scalastyle.in(Compile).toTask("").value,
+      (compile in Compile) <<= (compile in Compile) dependsOn compileScalastyle*/
     ))
 
   lazy val word2vecModelGeneration = Project(

@@ -1,3 +1,19 @@
+/**
+ * (C) Copyright IBM Corp. 2015, 2016
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.tiara.restapi
 
 import org.gephi.filters.plugin.graph.DegreeRangeBuilder.DegreeRangeFilter
@@ -145,10 +161,11 @@ object GraphUtils {
     val edges = scala.io.Source.fromFile(graphFile).getLines().toArray.map{
       (line: String) =>
         val toks = line.split(separator)
-        if (toks.length == 3)
+        if (toks.length == 3) {
           new Tuple3(toks(0), toks(1), toks(2))
-        else
+        } else {
           new Tuple3(toks(0), toks(1), "1.0")
+        }
     }
     val graphModel = edgeListToGephiModel(edges)
     val directedGraph = graphModel.getDirectedGraph
@@ -166,7 +183,7 @@ object GraphUtils {
 
   }
 
-  def modelToJson(graphModel: GraphModel,top: Double): JsObject = {
+  def modelToJson(graphModel: GraphModel, top: Double): JsObject = {
     val nodeCount = graphModel.getGraph.getNodeCount
     val modCol = graphModel.getNodeTable.getColumn(Modularity.MODULARITY_CLASS)
     // generate a list of communities sorted by descending order of their node sizes
@@ -213,7 +230,10 @@ object GraphUtils {
     nodes ++ edges
   }
 
-  def edgeListToFinalJson(edges: Array[(String,String, String)], resolution: Double, top: Double, zeroZ: Boolean = true): JsObject = {
+  def edgeListToFinalJson(edges: Array[(String, String, String)],
+                          resolution: Double,
+                          top: Double,
+                          zeroZ: Boolean = true): JsObject = {
     val mod = edgeListToGephiModel(edges)
     println(s"node count: ${mod.getGraph.getNodeCount}, edge count: ${mod.getGraph.getEdgeCount}")
 
@@ -228,14 +248,14 @@ object GraphUtils {
       3, // descentCount
       20.0 // descentThreshold
     )
-    
+
     val modularity: Modularity = new Modularity
     modularity.setResolution(resolution)
     modularity.execute(mod)
     modelToJson(mod, top)
   }
 
-  def TestMain(args: Array[String]) = {
+  def TestMain(args: Array[String]): Unit = {
 
     val G = scala.io.Source.fromFile(
       //      "/tmp/small100.csv"
@@ -250,7 +270,7 @@ object GraphUtils {
     val modularity: Modularity = new Modularity
     modularity.execute(mod)
 
-    println(Json.prettyPrint(modelToJson(mod,10)))
+    println(Json.prettyPrint(modelToJson(mod, 10)))
   }
 
 }

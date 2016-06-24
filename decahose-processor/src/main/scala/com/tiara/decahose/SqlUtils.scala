@@ -1,3 +1,19 @@
+/**
+ * (C) Copyright IBM Corp. 2015, 2016
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.tiara.decahose
 
 import scala.collection.JavaConverters._
@@ -33,7 +49,7 @@ object SqlUtils extends Logging {
 
   val regexSuffixes: String = "[a-z0-9]*" + scala.io.Source.fromInputStream(
     getClass.getResourceAsStream("/suffixes.2")
-  ).getLines().mkString("(","|",")") + """($|\s)"""
+  ).getLines().mkString("(", "|", ")") + """($|\s)"""
 
   val regexNumber: String = "[0-9]*(:|.|/|-)?[0-9]*(:|.|/|-)?[0-9]*$"
 
@@ -58,54 +74,74 @@ object SqlUtils extends Logging {
 
   // UDFs for processing tweets into tokens and entities
   val lowerTwokens = org.apache.spark.sql.functions.udf(
-    (text: String) => if (text != null)
-      com.tiara.decahose.Twokenize.tokenizeRawTweetText(text).asScala
-        .map((x: String) => x.toLowerCase)
-    else null
+    (text: String) =>
+      if (text != null) {
+        com.tiara.decahose.Twokenize.tokenizeRawTweetText(text).asScala
+          .map((x: String) => x.toLowerCase)
+      } else {
+        null
+      }
   )
   val lowerTwokensNoHttp = org.apache.spark.sql.functions.udf(
-    (text: String) => if (text != null)
-      com.tiara.decahose.Twokenize.tokenizeRawTweetText(text).asScala
-        .map((x: String) => x.toLowerCase)
-        .filter((x: String) => !x.startsWith("http"))
-    else null
+    (text: String) =>
+      if (text != null) {
+        com.tiara.decahose.Twokenize.tokenizeRawTweetText(text).asScala
+          .map((x: String) => x.toLowerCase)
+          .filter((x: String) => !x.startsWith("http"))
+      } else {
+        null
+      }
   )
   val lowerTwokensNoHttpNoStop = org.apache.spark.sql.functions.udf(
-    (text: String) => if (text != null)
-      com.tiara.decahose.Twokenize.tokenizeRawTweetText(text).asScala
-        .map((x: String) => x.toLowerCase)
-        .filter((x: String) => !stopWords.contains(x) && !x.startsWith("http"))
-    else null
+    (text: String) =>
+      if (text != null) {
+        com.tiara.decahose.Twokenize.tokenizeRawTweetText(text).asScala
+          .map((x: String) => x.toLowerCase)
+          .filter((x: String) => !stopWords.contains(x) && !x.startsWith("http"))
+      } else {
+        null
+      }
   )
 
   val lowerTwokensNoHttpNoStopNoApostrophe = org.apache.spark.sql.functions.udf(
-    (text: String) => if (text != null)
-      com.tiara.decahose.Twokenize.tokenizeRawTweetText(text).asScala
-        .map((x: String) => {
-          val lower = x.toLowerCase
-          if (lower.matches(regexSuffixes)) {
-            val index = if (lower.lastIndexOf("'") == -1) lower.lastIndexOf("’") else lower.lastIndexOf("'")
-            lower.substring(0, index)
-          }
-          else lower
-        })
-        .filter((x: String) => !stopWords.contains(x) && !x.startsWith("http"))
-    else null
+    (text: String) =>
+      if (text != null) {
+        com.tiara.decahose.Twokenize.tokenizeRawTweetText(text).asScala
+          .map((x: String) => {
+            val lower = x.toLowerCase
+            if (lower.matches(regexSuffixes)) {
+              val index =
+                if (lower.lastIndexOf("'") == -1) lower.lastIndexOf("’") else lower.lastIndexOf("'")
+              lower.substring(0, index)
+            } else {
+              lower
+            }
+          })
+          .filter((x: String) => !stopWords.contains(x) && !x.startsWith("http"))
+      } else {
+        null
+      }
   )
 
   val lowerTwokensNoHttpNoStopNoApostropheNoNumbers = org.apache.spark.sql.functions.udf(
-    (text: String) => if (text != null)
-      com.tiara.decahose.Twokenize.tokenizeRawTweetText(text).asScala
-        .map((x: String) => {
-        val lower = x.toLowerCase
-        if (lower.matches(regexSuffixes)) {
-          val index = if(lower.lastIndexOf("'") == -1) lower.lastIndexOf("’") else lower.lastIndexOf("'")
-          lower.substring(0, index)
-        }
-        else lower
-      })
-        .filter((x: String) => !stopWords.contains(x) && !x.startsWith("http") && !x.matches(regexNumber))
-    else null
+    (text: String) =>
+      if (text != null) {
+        com.tiara.decahose.Twokenize.tokenizeRawTweetText(text).asScala
+          .map((x: String) => {
+            val lower = x.toLowerCase
+            if (lower.matches(regexSuffixes)) {
+              val index =
+                if (lower.lastIndexOf("'") == -1) lower.lastIndexOf("’") else lower.lastIndexOf("'")
+              lower.substring(0, index)
+            } else {
+              lower
+            }
+          })
+          .filter((x: String) =>
+            !stopWords.contains(x) && !x.startsWith("http") && !x.matches(regexNumber))
+      } else {
+        null
+      }
   )
 
   val hashtagsFromToks = org.apache.spark.sql.functions.udf(
@@ -113,42 +149,51 @@ object SqlUtils extends Logging {
   )
 
   val tagToText = org.apache.spark.sql.functions.udf(
-    (it: WrappedArray[Row]) => if (it != null) it.map(
-      (tag: Row) => "#" + tag.getAs[String]("text").toLowerCase
-    )
-    else null
+    (it: WrappedArray[Row]) =>
+      if (it != null) {
+        it.map(
+          (tag: Row) => "#" + tag.getAs[String]("text").toLowerCase
+        )
+      } else {
+        null
+      }
   )
   val mentionToText = org.apache.spark.sql.functions.udf(
-    (it: WrappedArray[Row]) => if (it != null) it.map(
-      (tag: Row) => "@" + tag.getAs[String]("screen_name").toLowerCase
-    )
-    else null
+    (it: WrappedArray[Row]) =>
+      if (it != null) {
+        it.map(
+          (tag: Row) => "@" + tag.getAs[String]("screen_name").toLowerCase
+        )
+      } else {
+        null
+      }
   )
   val flattenDistinct = org.apache.spark.sql.functions.udf(
-    (it: WrappedArray[WrappedArray[String]]) => it.filter(_ != null).flatten.distinct.filter(_.length>=2)
+    (it: WrappedArray[WrappedArray[String]]) =>
+      it.filter(_ != null).flatten.distinct.filter(_.length >= 2)
   )
 
   val extractSentiment = org.apache.spark.sql.functions.udf(
     (it: WrappedArray[String]) => {
       var sentScore = 0.0
-      var count = 0;
+      var count = 0
       it.foreach(word => {
         WORD_LIST_SCORE.get(word) match {
-          case Some(score) => {
+          case Some(score) =>
             sentScore += score.positive
             sentScore -= score.negative
             count += 1
-          }
           case _ =>
         }
       })
       val normalizedScore = sentScore/count
-      // positive
-      if(normalizedScore > SENTIMENT_CUTOFF) 1
-      // negative
-      else if( normalizedScore < -SENTIMENT_CUTOFF) -1
-      // neutral
-      else 0
+      if (normalizedScore > SENTIMENT_CUTOFF) {
+        1 // positive
+      } else if ( normalizedScore < -SENTIMENT_CUTOFF) {
+        -1 // negative
+      } else {
+        0 // neutral
+      }
     }
   )
 
@@ -267,7 +312,9 @@ object SqlUtils extends Logging {
 
   // update frequency count of single entity in redis
   // we maintain date#entity => (token, count)
-  def groupedBulkUpdateCounters(tsFieldName: String, tokenFieldName: String, rows: Iterator[Row]): Unit = {
+  def groupedBulkUpdateCounters(tsFieldName: String,
+                                tokenFieldName: String,
+                                rows: Iterator[Row]): Unit = {
     val jedis = pool.getResource
     var pipe = jedis.pipelined()
     var i: Int = 0
@@ -308,7 +355,10 @@ object SqlUtils extends Logging {
 
 
   // Update time series data points in redis
-  def groupedUpdateTimeSeries(redisTSTag: String, tsFieldName: String, tokenFieldName: String, rows: Iterator[Row]): Unit = {
+  def groupedUpdateTimeSeries(redisTSTag: String,
+                              tsFieldName: String,
+                              tokenFieldName: String,
+                              rows: Iterator[Row]): Unit = {
     val jedis = pool.getResource
     var pipe = jedis.pipelined()
     var i: Int = 0

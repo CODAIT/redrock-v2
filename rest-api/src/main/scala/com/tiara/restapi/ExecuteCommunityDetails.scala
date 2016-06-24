@@ -1,3 +1,19 @@
+/**
+ * (C) Copyright IBM Corp. 2015, 2016
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.tiara.restapi
 
 import org.apache.spark.Logging
@@ -13,11 +29,12 @@ import scala.concurrent._
 /**
  * Created by barbaragomes on 5/5/16.
  */
-object ExecuteCommunityDetails extends Logging{
+object ExecuteCommunityDetails extends Logging {
 
   val wordcloud = "wordcloud"
   val sentiment = "sentiment"
-  val sentimentDescription = Json.obj(sentiment -> Json.obj("communityID" -> Json.arr("positive", "negative", "neutral")))
+  val sentimentDescription =
+    Json.obj(sentiment -> Json.obj("communityID" -> Json.arr("positive", "negative", "neutral")))
   val worldcloud = Json.obj(wordcloud -> Json.obj("communityID" -> Json.arr("word", "count")))
 
   def getDetails(searchTerms: String, count: Int): Future[String] = {
@@ -25,23 +42,26 @@ object ExecuteCommunityDetails extends Logging{
     logInfo(s"Get community graph details with search: $searchTerms.")
     val md5 = getMD5forSearchTerms(searchTerms)
 
-    val result = future {computeDetails(searchTerms.toLowerCase(),md5, count)}
+    val result = future {computeDetails(searchTerms.toLowerCase, md5, count)}
 
-    result.recover{
-      case e: Exception => logError("Could not execute request.", e); Json.stringify(buildResponse(false,null,null))
+    result.recover {
+      case e: Exception =>
+        logError("Could not execute request.", e); Json.stringify(buildResponse(false, null, null))
     }
   }
 
-  private def computeDetails(searchTerms: String, md5: String, count: Int):String = {
-    try{
+  private def computeDetails(searchTerms: String, md5: String, count: Int): String = {
+    try {
       getDetailsForCommunities(md5, searchTerms, count)
-    }catch {
-      case e: Exception => logError("Could not get Details for community", e); Json.stringify(buildResponse(false,null,null))
+    } catch {
+      case e: Exception =>
+        logError("Could not get Details for community", e)
+        Json.stringify(buildResponse(false, null, null))
     }
   }
 
   private def getDetailsForCommunities(md5: String, searchTerms: String, count: Int): String = {
-    //get Resource
+    // get Resource
     val jedis = ApplicationContext.jedisPool.getResource
 
     import ApplicationContext.sqlContext.implicits._
@@ -61,7 +81,7 @@ object ExecuteCommunityDetails extends Logging{
           populateMembership(membership, communityID, users)
         }
 
-        //Get membership as DF
+        // Get membership as DF
         val membershipDF = ApplicationContext.sparkContext
           .parallelize(membership).toDF
           .withColumnRenamed("_1", "community")
@@ -71,9 +91,11 @@ object ExecuteCommunityDetails extends Logging{
         val filteredRT = getFilteredRT(searchTerms)
         logInfo("Joining membership DF to Retweets DF")
         // OBS: I think the join should be looking also to the OUID column of the filtered tweets
-        // Somenthing like (filteredRT("uid") === membershipDF("uid") || filteredRT("ouid") === membershipDF("uid"))
+        // Somenthing like:
+        // (filteredRT("uid") === membershipDF("uid") || filteredRT("ouid") === membershipDF("uid"))
         // Because the nodes list from the community graph includes users that was retweeted
-        val membershipRT_DF = filteredRT.join(membershipDF, filteredRT("uid") === membershipDF("uid")).cache()
+        val membershipRT_DF =
+          filteredRT.join(membershipDF, filteredRT("uid") === membershipDF("uid")).cache()
 
         // Get sentiment
         val sentimentResponse: JsObject = extractSentiment(membershipRT_DF)
@@ -104,15 +126,23 @@ object ExecuteCommunityDetails extends Logging{
       // Json.ojb(CommunityID -> Json.Array[count of positive, count of negative, count of neutral])
       val mapToJson: Array[JsObject] = sentiment.map(community_sentiment => {
         Json.obj(community_sentiment._1 ->
-          Json.arr(community_sentiment._2.find { case (sent: Int, count: Int) => (sent, count) ==(1, count) }.getOrElse((0, 0))._2,
-            community_sentiment._2.find { case (sent: Int, count: Int) => (sent, count) ==(-1, count) }.getOrElse((0, 0))._2,
-            community_sentiment._2.find { case (sent: Int, count: Int) => (sent, count) ==(0, count) }.getOrElse((0, 0))._2))
+          Json.arr(
+            community_sentiment._2.find {
+              case (sent: Int, count: Int) => (sent, count) == (1, count)
+            }.getOrElse((0, 0))._2,
+            community_sentiment._2.find {
+              case (sent: Int, count: Int) => (sent, count) == (-1, count)
+            }.getOrElse((0, 0))._2,
+            community_sentiment._2.find {
+              case (sent: Int, count: Int) => (sent, count) == (0, count)
+            }.getOrElse((0, 0))._2
+          ))
       }).collect
 
       val elapsed = (System.nanoTime() - startTime) / 1e9
       logInfo(s"Extract sentiment finished. Execution time: $elapsed")
-        
-      mapToJson.fold(Json.obj())((obj1,obj2) => obj1++obj2)
+
+      mapToJson.fold(Json.obj())((obj1, obj2) => obj1 ++ obj2)
     }
     catch {
       case e: Exception => logError("Could not extract sentiment", e); null
@@ -121,7 +151,7 @@ object ExecuteCommunityDetails extends Logging{
   }
 
   private def extractWordCloud(membershipDF: DataFrame, top: Int): JsObject = {
-    try{
+    try {
       // override ordering to sort in descending order
       implicit object ReverseLongOrdering extends Ordering[Int] {
         def compare(x: Int, y: Int) = -1 * x.compareTo(y)
@@ -129,50 +159,62 @@ object ExecuteCommunityDetails extends Logging{
 
       logInfo("Extracting word cloud")
       val startTime = System.nanoTime()
-      //If the column toks is also stored as a array we can skip the call to the tokensFromString UDF
-      val explodeByTokens = membershipDF.withColumn("tokensArray", tokensFromString(col(COL_TOKENS)))
-                    .select(col("community"), explode(col("tokensArray")).as("word"))
-                    .filter(excludeHandles(col("word")))
+      // If the column toks is also stored as a array
+      // we can skip the call to the tokensFromString UDF
+      val explodeByTokens =
+        membershipDF.withColumn("tokensArray", tokensFromString(col(COL_TOKENS)))
+          .select(col("community"), explode(col("tokensArray")).as("word"))
+          .filter(excludeHandles(col("word")))
 
       val aggToJson = explodeByTokens.groupBy("community", "word").agg(count("word").as("count"))
         .map(row => (row.getString(0), (row.getString(1), row.getLong(2).toInt)))
         .groupByKey
-        .map{case (id: String, wordcount:Iterable[(String,Int)]) => {
-          val sorted = (wordcount.toArray.sortBy{case (word,count) => count}(ReverseLongOrdering))
-                        .take(top)
-                        .map{ case (word,count) => Json.arr(word,count)}
-          Json.obj(id -> sorted)
-        }}.collect()
+        .map {
+          case (id: String, wordcount: Iterable[(String, Int)]) => {
+            val sorted =
+              (wordcount.toArray.sortBy { case (word, count) => count } (ReverseLongOrdering))
+                .take(top)
+                .map { case (word, count) => Json.arr(word, count) }
+            Json.obj(id -> sorted)
+          }
+        }.collect()
 
       val elapsed = (System.nanoTime() - startTime) / 1e9
       logInfo(s"Extract wordcloud finished. Execution time: $elapsed")
 
-      aggToJson.fold(Json.obj())((obj1,obj2) => obj1++obj2)
+      aggToJson.fold(Json.obj())((obj1, obj2) => obj1 ++ obj2)
 
-    }catch{
+    } catch {
       case e: Exception => logError("Could not extratc word cloud", e); null
     }
   }
 
   private def getFilteredRT(searchTerms: String): DataFrame = {
     logInfo("Filtering Retweets DF")
-    val filterRegex = s"(${searchTerms.trim.replaceAll(","," | ")} )"
+    val filterRegex = s"(${searchTerms.trim.replaceAll(",", " | ")} )"
     InMemoryData.retweetsENDF.filter(col(COL_TOKENS).rlike(filterRegex))
   }
 
-  private def getUsersForCommunity(md5: String, communityID: String, jResource: Jedis): Array[String] = {
+  private def getUsersForCommunity(md5: String, communityID: String, jResource: Jedis):
+  Array[String] = {
     jResource.lrange(s"$md5:$communityID", 0, -1).toArray.map(_.toString)
   }
 
-  private def populateMembership(membership:ArrayBuffer[(String, Array[String])], communityID: String, users: Array[String]) = {
-    if(users != null && !users.isEmpty)
-      membership.append((communityID,users))
+  private def populateMembership(membership: ArrayBuffer[(String, Array[String])],
+                                 communityID: String,
+                                 users: Array[String]) = {
+    if (users != null && !users.isEmpty) {
+      membership.append((communityID, users))
+    }
   }
 
-  private def buildResponse(success: Boolean, sentimentJson: JsObject, wordcloudJson: JsObject):JsObject = {
+  private def buildResponse(success: Boolean, sentimentJson: JsObject, wordcloudJson: JsObject):
+  JsObject = {
     Json.obj("success" -> success) ++
       sentimentDescription ++ worldcloud ++
-      Json.obj("communitydetails" -> (Json.obj(sentiment -> (if(sentimentJson == null) JsNull else sentimentJson))
-        ++ Json.obj(wordcloud -> (if(wordcloudJson == null) JsNull else wordcloudJson))))
+      Json.obj("communitydetails" -> (
+        Json.obj(sentiment -> (if (sentimentJson == null) JsNull else sentimentJson)) ++
+          Json.obj(wordcloud -> (if (wordcloudJson == null) JsNull else wordcloudJson))
+        ))
   }
 }

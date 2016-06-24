@@ -1,3 +1,19 @@
+/**
+ * (C) Copyright IBM Corp. 2015, 2016
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.tiara.restapi
 
 import java.io.{BufferedReader, InputStreamReader}
@@ -14,11 +30,11 @@ import Utils._
 /**
  * Created by barbaragomes on 4/19/16.
  */
-class UpdateWord2VecModel extends Actor with Logging{
+class UpdateWord2VecModel extends Actor with Logging {
 
   import UpdateWord2VecModel._
 
-  //Check every 10min for a new model
+  // Check every 10min for a new model
   context.system.scheduler.schedule(delay, interval) {
     try {
       val newModelName: String = checkForTokenFile()
@@ -35,7 +51,7 @@ class UpdateWord2VecModel extends Actor with Logging{
   }
 
   override def receive: Receive = {
-    case StartMonitoringWord2VecModels =>{
+    case StartMonitoringWord2VecModels => {
       logInfo("Word2Vec models monitoring started.")
     }
   }
@@ -43,18 +59,18 @@ class UpdateWord2VecModel extends Actor with Logging{
   private def deleteTokenFileAfterProcessed() = {
     try {
       ApplicationContext.hadoopFS.delete(new Path(tokenFile), true)
-    }catch {
-      case e: Exception => logError("Could not remove token file",e)
+    } catch {
+      case e: Exception => logError("Could not remove token file", e)
     }
   }
 
   private def checkForTokenFile(): String = {
-    if(ApplicationContext.hadoopFS.exists(new Path(tokenFile))){
+    if (ApplicationContext.hadoopFS.exists(new Path(tokenFile))) {
       val file = ApplicationContext.hadoopFS.open(new Path(tokenFile))
       val name = (new BufferedReader(new InputStreamReader(file))).readLine()
       file.close()
       name
-    }else{
+    } else {
       ""
     }
   }
@@ -81,14 +97,16 @@ object UpdateWord2VecModel extends Logging {
     Props(new UpdateWord2VecModel)
   }
 
-  def updateModelInMemory(newModelName: String) = {
+  def updateModelInMemory(newModelName: String): Unit = {
     logInfo(s"New model generated: $newModelName")
     val modelPath = s"$modelsPath/$newModelName"
 
     try {
-      InMemoryData.word2VecModel = Word2VecModel.load(ApplicationContext.sparkContext,s"$modelPath/$modelFolder")
+      InMemoryData.word2VecModel =
+        Word2VecModel.load(ApplicationContext.sparkContext, s"$modelPath/$modelFolder")
       // Using counters from Redis
-      // InMemoryData.frequency = ApplicationContext.sqlContext.read.parquet(s"$modelPath/$freqFolder")
+      // InMemoryData.frequency =
+      //   ApplicationContext.sqlContext.read.parquet(s"$modelPath/$freqFolder")
       val newRTDF = ApplicationContext.sqlContext.read.parquet(s"$englishPath/$newModelName")
         .filter("verb = 'share'")
         .withColumn("stringtoks", stringTokens(col(COL_TOKENS)))
@@ -109,7 +127,7 @@ object UpdateWord2VecModel extends Logging {
       // Get string reference to the date for the model and RT DF
       InMemoryData.date = newModelName.replace(datePrefix, "")
 
-    }catch {
+    } catch {
       case e: Exception => logError("Model could not be updated", e)
     }
   }
@@ -123,7 +141,7 @@ object UpdateWord2VecModel extends Logging {
       }
       "success"
     } catch {
-      case e: Exception => logError("Could not validate date",e)
+      case e: Exception => logError("Could not validate date", e)
         "failure: correct format: YYYY-MM-DD"
     }
   }
@@ -134,7 +152,8 @@ object UpdateWord2VecModel extends Logging {
       InMemoryData.word2VecModel = Word2VecModel.load(ApplicationContext.sparkContext,
         Config.appConf.getString("hadoop-default-fs") + w2vPath)
       // Using counters from Redis
-      // InMemoryData.frequency = ApplicationContext.sqlContext.read.parquet(s"$modelPath/$freqFolder")
+      // InMemoryData.frequency =
+      //   ApplicationContext.sqlContext.read.parquet(s"$modelPath/$freqFolder")
       val newRTDF = ApplicationContext.sqlContext.read.parquet(s"$englishPath")
         .filter(col("postedDate") >= lit(rtStartDate))
         .filter(col("postedDate") < lit(rtEndDate))
@@ -153,14 +172,15 @@ object UpdateWord2VecModel extends Logging {
       if (InMemoryData.retweetsENDF != null) InMemoryData.retweetsENDF.unpersist(true)
       InMemoryData.retweetsENDF = newRTDF
       InMemoryData.retweetsENDF.persist()
-      logInfo(s"retweet count for [ ${rtStartDate}, ${rtEndDate} ]: ${InMemoryData.retweetsENDF.count}")
+      logInfo(s"retweet count for [ ${rtStartDate}, ${rtEndDate} ]: " ++
+        s"${InMemoryData.retweetsENDF.count}")
 
       // Get string reference to the date for the model and RT DF
       InMemoryData.date = rtStartDate
 
       "success"
     } catch {
-      case e: Exception => logError("Could not validate date",e)
+      case e: Exception => logError("Could not validate date", e)
         "failure: correct format: YYYY-MM-DD"
     }
   }

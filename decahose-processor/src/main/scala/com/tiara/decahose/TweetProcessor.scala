@@ -1,3 +1,19 @@
+/**
+ * (C) Copyright IBM Corp. 2015, 2016
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.tiara.decahose
 
 import scala.collection.mutable.WrappedArray
@@ -15,7 +31,7 @@ import SqlUtils._
 /**
  * Created by barbaragomes on 4/4/16.
  */
-object TweetProcessor extends Logging{
+object TweetProcessor extends Logging {
 
   private val debugFlag = false;
 
@@ -36,7 +52,7 @@ object TweetProcessor extends Logging{
   def processBatchData(paths: Array[String]): Unit = {
     try {
       logInfo(s"Processing batch data. Directory(s): " + paths.mkString(","))
-      val df = ApplicationContext.sqlContext.read.schema(ApplicationContext.schema).json(paths:_*)
+      val df = ApplicationContext.sqlContext.read.schema(ApplicationContext.schema).json(paths: _*)
       processedTweetsDataFrame(df)
     } catch {
       case e: Exception => logError("Something went wrong while processing historical batch", e)
@@ -56,21 +72,31 @@ object TweetProcessor extends Logging{
   /* Checkpoint */
   private def createStreamingContext(): StreamingContext = {
 
-    val ssc = new StreamingContext(ApplicationContext.sparkContext, Seconds(Config.processorConf.getInt("spark.streaming-batch-time")))
+    val ssc =
+      new StreamingContext(ApplicationContext.sparkContext,
+        Seconds(Config.processorConf.getInt("spark.streaming-batch-time")))
 
-    val tweetsStreaming = ssc.fileStream[LongWritable, Text, TextInputFormat](Config.processorConf.getString("decahose-dir"),
-      (p: Path) => {
-        /* Do not process file in WRITING mode */
-        if (p.getName().endsWith(Config.processorConf.getString("writing-mode-string"))) false
-        else true
-      }, true).map(_._2.toString)
+    val tweetsStreaming =
+      ssc.fileStream[LongWritable, Text, TextInputFormat](
+        Config.processorConf.getString("decahose-dir"),
+        (p: Path) => {
+          /* Do not process file in WRITING mode */
+          if (p.getName().endsWith(Config.processorConf.getString("writing-mode-string"))) {
+            false
+          } else {
+            true
+          }
+        },
+        true
+      ).map(_._2.toString)
 
     tweetsStreaming.foreachRDD { (rdd: RDD[String], time: Time) =>
       logInfo(s"Streaming Batch Time: ${Utils.transformSparkTime(time)}")
       if (!rdd.partitions.isEmpty) {
         logInfo("Processing File(s):")
         extractFileName.findAllMatchIn(rdd.toDebugString).foreach((name) => logInfo(name.toString))
-        val tweetsDF = ApplicationContext.sqlContext.read.schema(ApplicationContext.schema).json(rdd)
+        val tweetsDF =
+          ApplicationContext.sqlContext.read.schema(ApplicationContext.schema).json(rdd)
         processedTweetsDataFrame(tweetsDF, rdd.toDebugString)
       }
     }
@@ -78,11 +104,13 @@ object TweetProcessor extends Logging{
     ssc
   }
 
-  def processedTweetsDataFrame(tweetsDF: DataFrame, debugString: String = "", saveMode: SaveMode = SaveMode.Append) = {
-    try{
+  def processedTweetsDataFrame(tweetsDF: DataFrame,
+                               debugString: String = "",
+                               saveMode: SaveMode = SaveMode.Append): Unit = {
+    try {
 
-      //TODO: in case of multiple files, use the file size information
-      //TODO: to estimate/inform how long the subsequent processing will take
+      // TODO: in case of multiple files, use the file size information
+      // TODO: to estimate/inform how long the subsequent processing will take
 
       // Filter by English tweets
       // Save filtered DF as parquet to HDFS, partitioned by date
@@ -106,8 +134,9 @@ object TweetProcessor extends Logging{
       dfWriter.format("parquet").save(enDir)
 
       // read it back from parquet files, this is faster
-//      val enDF = tweetsDF.sqlContext.read.parquet(enDir + "/" + timeWindow)
-//      val enDF = tweetsDF.sqlContext.read.parquet("hdfs://spark-dense-01:8020/daily/en/2016_03_01")
+      // val enDF = tweetsDF.sqlContext.read.parquet(enDir + "/" + timeWindow)
+      // val enDF =
+      //   tweetsDF.sqlContext.read.parquet("hdfs://spark-dense-01:8020/daily/en/2016_03_01")
 
       // extract all unique lower case string tokens, from both original body and the retweet
       val dateToksDF = enDF
@@ -138,7 +167,8 @@ object TweetProcessor extends Logging{
           ).groupBy(COL_POSTED_DATE, COL_TWITTER_ENTITY).count.repartition(70)
 
           gDF.foreachPartition(
-            (rows: Iterator[Row]) => groupedBulkUpdateCounters(COL_POSTED_DATE, COL_TWITTER_ENTITY, rows)
+            (rows: Iterator[Row]) =>
+              groupedBulkUpdateCounters(COL_POSTED_DATE, COL_TWITTER_ENTITY, rows)
           )
         }
 
@@ -151,7 +181,8 @@ object TweetProcessor extends Logging{
           ).groupBy(COL_POSTED_DATE, COL_TWITTER_AUTHOR).count.repartition(70)
 
           gDF.foreachPartition(
-            (rows: Iterator[Row]) => groupedBulkUpdateCounters(COL_POSTED_DATE, COL_TWITTER_AUTHOR, rows)
+            (rows: Iterator[Row]) =>
+              groupedBulkUpdateCounters(COL_POSTED_DATE, COL_TWITTER_AUTHOR, rows)
           )
         }
 
@@ -182,7 +213,8 @@ object TweetProcessor extends Logging{
                 .map(_.sorted)
                 .map((x: Seq[String]) => Tuple2(x(0), x(1)))
           }
-            .select(col(COL_POSTED_DATE), col(COL_PAIR + "._1").as(COL_TOKEN_1), col(COL_PAIR + "._2").as(COL_TOKEN_2))
+            .select(col(COL_POSTED_DATE), col(COL_PAIR + "._1").as(COL_TOKEN_1),
+              col(COL_PAIR + "._2").as(COL_TOKEN_2))
             .groupBy(COL_POSTED_DATE, COL_TOKEN_1, COL_TOKEN_2).count
             .repartition(90)
 
@@ -192,7 +224,7 @@ object TweetProcessor extends Logging{
         }
       }
 
-      //TODO: debug code, should move to test module
+      // TODO: debug code, should move to test module
       if (debugFlag) {
 
         val hourToksDF = enDF
@@ -295,13 +327,15 @@ object TweetProcessor extends Logging{
       dateToksDF.unpersist()
 
       // Delete file just if it was processed
-      if(!debugString.isEmpty && Config.processorConf.getBoolean("spark.delete-file-after-processed")){
+      if (!debugString.isEmpty &&
+        Config.processorConf.getBoolean("spark.delete-file-after-processed")) {
         logInfo("Deleting File(s):")
-        extractFileName.findAllMatchIn(debugString).foreach((name) => Utils.deleteFile(name.toString))
+        extractFileName.findAllMatchIn(debugString)
+          .foreach((name) => Utils.deleteFile(name.toString))
       }
 
 
-    }catch {
+    } catch {
       case e: Exception => logError("Could not process file(s)", e)
     }
   }

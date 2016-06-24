@@ -1,3 +1,19 @@
+/**
+ * (C) Copyright IBM Corp. 2015, 2016
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.tiara.decahose
 
 import org.apache.spark.sql.{DataFrame, Row}
@@ -57,7 +73,8 @@ object BatchUtils {
           .map(_.sorted)
           .map((x: Seq[String]) => Tuple2(x(0), x(1)))
     }
-      .select(col(COL_POSTED_DATE), col(COL_PAIR + "._1").as(COL_TOKEN_1), col(COL_PAIR + "._2").as(COL_TOKEN_2))
+      .select(col(COL_POSTED_DATE), col(COL_PAIR + "._1").as(COL_TOKEN_1),
+        col(COL_PAIR + "._2").as(COL_TOKEN_2))
       .groupBy(COL_POSTED_DATE, COL_TOKEN_1, COL_TOKEN_2).count
       .repartition(90)
 

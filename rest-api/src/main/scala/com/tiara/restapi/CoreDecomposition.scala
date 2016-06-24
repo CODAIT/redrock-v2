@@ -1,3 +1,19 @@
+/**
+ * (C) Copyright IBM Corp. 2015, 2016
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.tiara.restapi
 
 import org.gephi.graph.api.{GraphModel, Graph, Node}
@@ -18,7 +34,8 @@ class CoreDecomposition {
 
   def run() {}
 
-  //XXX this is a port of the networkx core decomposition logic, this currently produces incorrect result
+  // XXX this is a port of the networkx core decomposition logic,
+  // this currently produces incorrect result
   def coreNumber0(graphModel: GraphModel) = {
     val graph = graphModel.getGraph
     val degrees = new mutable.HashMap[Node, Int]
@@ -35,7 +52,7 @@ class CoreDecomposition {
     //    bin_boundaries :+ 0
     var curr_degree = 0
 
-    for ((v,i) <- nodes.view.zipWithIndex) {
+    for ((v, i) <- nodes.view.zipWithIndex) {
       if (degrees(v) > curr_degree) {
         val delta = degrees(v) - curr_degree
         //          bin_boundaries.addAll(List.fill(i)(delta))
@@ -119,19 +136,20 @@ class CoreDecomposition {
     var i: Int = core(v)
     while (i>=2) {
       cumul = cumul + c(i)
-      if (cumul >= i)
+      if (cumul >= i) {
         return i
+      }
       i -= 1
     }
 
     d_v
   }
 
-  def kCoreUpdate(g: Graph, v: NodeImpl) = {
-    if(iteration == 0) {
+  def kCoreUpdate(g: Graph, v: NodeImpl): Unit = {
+    if (iteration == 0) {
       //      core(v) = v.getOutDegree
       //      core(v) = v.getDegree
-      scheduled(v)=true
+      scheduled(v) = true
       change = true
     } else {
 
@@ -170,8 +188,12 @@ class CoreDecomposition {
     //    val nV = graph.getNeighbors(n)
 
     val nodesSeq = graph.getNodes.toCollection
-    val nodesPar = nodesSeq.par.toSet //scala.collection.parallel.immutable.ParSet[Node]() ++ graph.getNodes.toCollection
-    //    nodesPar.tasksupport = new scala.collection.parallel.ForkJoinTaskSupport(new scala.concurrent.forkjoin.ForkJoinPool(1))
+    val nodesPar = nodesSeq.par.toSet
+    // scala.collection.parallel.immutable.ParSet[Node]() ++ graph.getNodes.toCollection
+    //    nodesPar.tasksupport =
+    //      new scala.collection.parallel.ForkJoinTaskSupport(
+    //        new scala.concurrent.forkjoin.ForkJoinPool(1)
+    //      )
 
     //    for (v <- graph.getNodes) {scheduled(v) = true;}
     nodesSeq.foreach{
@@ -181,12 +203,15 @@ class CoreDecomposition {
         scheduled(v) = true
     }
 
-    nodesPar.tasksupport = new scala.collection.parallel.ForkJoinTaskSupport(new scala.concurrent.forkjoin.ForkJoinPool(1))
+    nodesPar.tasksupport =
+      new scala.collection.parallel.ForkJoinTaskSupport(
+        new scala.concurrent.forkjoin.ForkJoinPool(1)
+      )
 
     while(true) {
       println("Iteration " + iteration)
 
-      var num_scheduled=0
+      var num_scheduled = 0
       val scheduledNow = scheduled.clone()
       //      for(int v=0; v<n; v++)
       //      for (v <- graph.getNodes) {scheduled(v) = false;}
@@ -204,10 +229,11 @@ class CoreDecomposition {
       }
       println( "\t\t" + ((100.0*num_scheduled)/n) + "%\t of nodes were scheduled this iteration.")
       iteration += 1
-      if(change == false)
+      if (change == false) {
         return 0
-      else
+      } else {
         change = false
+      }
     }
     0
   }

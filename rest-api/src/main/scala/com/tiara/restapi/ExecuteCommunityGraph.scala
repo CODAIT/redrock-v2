@@ -1,3 +1,19 @@
+/**
+ * (C) Copyright IBM Corp. 2015, 2016
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.tiara.restapi
 
 import org.apache.spark.Logging
@@ -15,10 +31,11 @@ import scala.concurrent._
 /**
  * Created by barbaragomes on 4/25/16.
  */
-object ExecuteCommunityGraph extends Logging{
+object ExecuteCommunityGraph extends Logging {
 
   val objcName = "communities"
-  val nodeDescription = Json.obj("node" -> Json.arr("label","id","degree","community","x","y","z"))
+  val nodeDescription =
+    Json.obj("node" -> Json.arr("label", "id", "degree", "community", "x", "y", "z"))
   val edgeDescription = Json.obj("edge" -> Json.arr("id", "source", "target", "weight"))
   val cacheMembership = Config.restapi.getBoolean("cache-graph-membership")
   val cacheExpiration = Config.restapi.getInt("membership-graph-expiration")
@@ -37,37 +54,44 @@ object ExecuteCommunityGraph extends Logging{
     logInfo(s"Get community graph with search: $searchTerms.")
     logInfo(s"Add 3D result: $get3Dresults")
 
-    val result = future {getCommunityGraphForVisualization(searchTerms.toLowerCase(),get3Dresults, commResolution, commTop)}
+    val result = future {
+      getCommunityGraphForVisualization(searchTerms.toLowerCase(),
+        get3Dresults, commResolution, commTop)
+    }
 
     result.recover{
-      case e: Exception => logError("Could not execute request.", e); Json.stringify(buildResponse(false))
+      case e: Exception =>
+        logError("Could not execute request.", e); Json.stringify(buildResponse(false))
     }
 
   }
 
-  private def getCommunityGraphForVisualization(searchTerms: String, get3Dresults: Boolean, resolution: Double, top: Double): String = {
+  private def getCommunityGraphForVisualization(searchTerms: String,
+                                                get3Dresults: Boolean,
+                                                resolution: Double,
+                                                top: Double): String = {
     val startTime = System.nanoTime()
     logInfo("Filtering RT dataframe")
     /* Using white space between the terms in order to avoid matches like: #go => #going
      * Match should be a complete match: #go only matches #go
      */
-    val filterRegex = s"(${searchTerms.trim.replaceAll(","," | ")} )"
+    val filterRegex = s"(${searchTerms.trim.replaceAll(",", " | ")} )"
     val filteredDF = InMemoryData.retweetsENDF.filter(col(COL_TOKENS).rlike(filterRegex))
 
     var results: JsObject = null
-    var success:Boolean = false;
+    var success: Boolean = false;
     try {
       results = getCommunity(filteredDF, get3Dresults, resolution, top)
       success = true
-    }catch {
+    } catch {
       case e: Exception => logInfo("Error while generating community graph", e)
     }
 
-    val response:JsObject = buildResponse(get3Dresults, success, results)
+    val response: JsObject = buildResponse(get3Dresults, success, results)
     val elapsed = (System.nanoTime() - startTime) / 1e9
     logInfo(s"Community Graph finished. Execution time: $elapsed")
 
-    if(cacheMembership) {
+    if (cacheMembership) {
       // Cache graph membership in background thread
       Future {
         cacheCommunityMembership(searchTerms, results)
@@ -80,27 +104,36 @@ object ExecuteCommunityGraph extends Logging{
     Json.stringify(response)
   }
 
-  private def getCommunity(filteredDF: DataFrame, get3Dresults: Boolean, resolution: Double, top: Double): JsObject = {
-    val edgeList = filteredDF.select(col("uid"), col("ouid")).groupBy("uid", "ouid").count.collect.map((r: Row) => (r.getString(0), r.getString(1), r.getLong(2).toString))
+  private def getCommunity(filteredDF: DataFrame,
+                           get3Dresults: Boolean,
+                           resolution: Double,
+                           top: Double): JsObject = {
+    val edgeList =
+      filteredDF.select(col("uid"), col("ouid"))
+        .groupBy("uid", "ouid")
+        .count
+        .collect
+        .map((r: Row) => (r.getString(0), r.getString(1), r.getLong(2).toString))
 
     GraphUtils.edgeListToFinalJson(edgeList, resolution, top, zeroZ = !get3Dresults)
   }
 
-  private def buildResponse(get3Dresults:Boolean, success: Boolean = true, result: JsObject = null):JsObject = {
-    val response = Json.obj("success" -> success) ++
-      Json.obj("status" -> 0) ++
+  private def buildResponse(get3Dresults: Boolean,
+                            success: Boolean = true,
+                            result: JsObject = null): JsObject = {
+    val response = Json.obj("success" -> success) ++ Json.obj("status" -> 0) ++
       nodeDescription ++ edgeDescription
 
-    if(!success)
+    if (!success) {
       response ++ Json.obj(objcName -> JsNull)
-    else if(result == null){
+    } else if (result == null) {
       response ++ Json.obj(objcName -> Json.arr())
-    }else{
+    } else {
       response ++ Json.obj(objcName -> result)
     }
   }
 
-  private def cacheCommunityMembership(searchTerms: String, graph: JsObject):String = {
+  private def cacheCommunityMembership(searchTerms: String, graph: JsObject): String = {
     logInfo("Caching graph membership")
     val md5 = getMD5forSearchTerms(searchTerms)
     logInfo(s"Search terms MD5: $md5")
@@ -124,7 +157,7 @@ object ExecuteCommunityGraph extends Logging{
         // Timeline when the cache will be avaiable
         pipe.expire(md5, cacheExpiration)
         pipe.expire(s"$md5:$community", cacheExpiration)
-        count += 2;
+        count += 2
 
         // Commit to redis every 10k instructions
         if (count == 10000) {
