@@ -110,8 +110,11 @@ object SqlUtils extends Logging {
           .map((x: String) => {
             val lower = x.toLowerCase
             if (lower.matches(regexSuffixes)) {
+              // scalastyle:off non.ascii.character.disallowed
+              // we need to check for the case with a non-ascii apostrophe
               val index =
                 if (lower.lastIndexOf("'") == -1) lower.lastIndexOf("’") else lower.lastIndexOf("'")
+              // scalastyle:on non.ascii.character.disallowed
               lower.substring(0, index)
             } else {
               lower
@@ -130,8 +133,11 @@ object SqlUtils extends Logging {
           .map((x: String) => {
             val lower = x.toLowerCase
             if (lower.matches(regexSuffixes)) {
+              // scalastyle:off non.ascii.character.disallowed
+              // we need to check for the case with a non-ascii apostrophe
               val index =
                 if (lower.lastIndexOf("'") == -1) lower.lastIndexOf("’") else lower.lastIndexOf("'")
+              // scalastyle:on non.ascii.character.disallowed
               lower.substring(0, index)
             } else {
               lower
