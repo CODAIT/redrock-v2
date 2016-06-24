@@ -35,7 +35,11 @@ class BatchJobServer extends Runnable with Logging {
       val out = new PrintStream(s.getOutputStream())
 
       in.foreach( processLine(_) )
+      // scalastyle:off println
+      // we are turning off scalastyle println warn here
+      // because the println is sending data to a socket
       out.println(in.mkString("\n"))
+      // scalastyle:on println
       out.flush()
       s.close()
     }

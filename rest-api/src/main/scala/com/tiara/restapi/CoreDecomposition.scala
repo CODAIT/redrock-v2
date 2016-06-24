@@ -16,27 +16,28 @@
  */
 package com.tiara.restapi
 
-import org.gephi.graph.api.{GraphModel, Graph, Node}
+import org.gephi.graph.api.{Graph, GraphModel, Node}
 import org.gephi.graph.impl.{GraphModelImpl, NodeImpl}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-
 import scala.collection._
 import scala.collection.convert.decorateAsScala._
 import java.util.concurrent.ConcurrentHashMap
 
+import org.apache.spark.Logging
+
 /**
   * Created by zchen on 5/8/16.
   */
-class CoreDecomposition {
+class CoreDecomposition extends Logging {
 
   def run() {}
 
   // XXX this is a port of the networkx core decomposition logic,
   // this currently produces incorrect result
-  def coreNumber0(graphModel: GraphModel) = {
+  def coreNumber0(graphModel: GraphModel): mutable.HashMap[Node, Int] = {
     val graph = graphModel.getGraph
     val degrees = new mutable.HashMap[Node, Int]
     graph.getNodes.toArray.foreach{
@@ -209,7 +210,7 @@ class CoreDecomposition {
       )
 
     while(true) {
-      println("Iteration " + iteration)
+      logInfo("Iteration " + iteration)
 
       var num_scheduled = 0
       val scheduledNow = scheduled.clone()
@@ -227,7 +228,7 @@ class CoreDecomposition {
             kCoreUpdate(graph, v.asInstanceOf[NodeImpl])
           }
       }
-      println( "\t\t" + ((100.0*num_scheduled)/n) + "%\t of nodes were scheduled this iteration.")
+      logInfo( "\t\t" + ((100.0*num_scheduled)/n) + "%\t of nodes were scheduled this iteration.")
       iteration += 1
       if (change == false) {
         return 0

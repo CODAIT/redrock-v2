@@ -16,6 +16,7 @@
  */
 package com.tiara.restapi
 
+import org.apache.spark.Logging
 import org.gephi.filters.plugin.graph.DegreeRangeBuilder.DegreeRangeFilter
 import org.gephi.filters.plugin.graph.KCoreBuilder.KCoreFilter
 import org.gephi.statistics.plugin.Modularity
@@ -33,7 +34,7 @@ import play.api.libs.json.{JsArray, JsNull, JsObject, Json}
 /**
   * Created by zchen on 4/28/16.
   */
-object GraphUtils {
+object GraphUtils extends Logging {
 
   val nodesLabel = "nodes"
 
@@ -49,7 +50,7 @@ object GraphUtils {
 
   def printLayout(graph: GraphModel): Unit = {
     for (node <- graph.getGraph.getNodes) {
-      println(s"n=${node.getId}, x=${node.x}, y=${node.y}, z=${node.z}")
+      logInfo(s"n=${node.getId}, x=${node.x}, y=${node.y}, z=${node.z}")
     }
   }
 
@@ -91,7 +92,7 @@ object GraphUtils {
     mod
   }
 
-  def gephiLayout(graphModel: GraphModel, zeroZ: Boolean = true) = {
+  def gephiLayout(graphModel: GraphModel, zeroZ: Boolean = true): Unit = {
     randomizeLayout(graphModel, 100, zeroZ)
 
     val layout: ForceAtlas3DLayout = new ForceAtlas3DLayout(null)
@@ -197,7 +198,7 @@ object GraphUtils {
       modsSizes.toSeq.sortBy(-_._2).foldLeft[Set[String]](Set.empty[String])(
         (aList, aTuple) => if (sum < top * nodeCount) {
           sum += aTuple._2
-          aList.+(aTuple._1)
+          aList + aTuple._1
         } else {
           aList
         }
@@ -235,12 +236,13 @@ object GraphUtils {
                           top: Double,
                           zeroZ: Boolean = true): JsObject = {
     val mod = edgeListToGephiModel(edges)
-    println(s"node count: ${mod.getGraph.getNodeCount}, edge count: ${mod.getGraph.getEdgeCount}")
+    logInfo(s"node count: ${mod.getGraph.getNodeCount}, edge count: ${mod.getGraph.getEdgeCount}")
 
     val f = new KCoreFilter
     f.setK(2)
     f.filter(mod.getGraph)
-    println(s"filtered node count: ${mod.getGraph.getNodeCount}, filtered edge count: ${mod.getGraph.getEdgeCount}")
+    logInfo(s"filtered node count: ${mod.getGraph.getNodeCount}," +
+      s" filtered edge count: ${mod.getGraph.getEdgeCount}")
 
     gephiLayout2(mod, zeroZ,
       300, // max 300 iterations
@@ -270,7 +272,7 @@ object GraphUtils {
     val modularity: Modularity = new Modularity
     modularity.execute(mod)
 
-    println(Json.prettyPrint(modelToJson(mod, 10)))
+    logInfo(Json.prettyPrint(modelToJson(mod, 10)))
   }
 
 }
