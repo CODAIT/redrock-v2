@@ -12,12 +12,13 @@ In this guide it is assumed you are using a mac, but it can easily translate to 
 
 ### Download RedRock v2 code
 
-Clone the RedRock v2 Backend code at: <https://github.com/SparkTC/tiara>
+Clone the RedRock v2 Backend code at: <https://github.com/SparkTC/redrock-v2>
 
 In case you can't access the repo, please contact Luciano Resende for authorization.
 
 Configure environment variable TIARA_HOME at your shell initialization file with the path to your RedRock v2 directory. For example: at your **/home/.profile** add the line: **export TIARA_HOME=/Users/YOURUSERNAME/Projects/tiara**  
 
+Clarifying note: tiara was the repo name during internal developement
 
 ### Environment Setup
 
