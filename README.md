@@ -42,6 +42,10 @@ Install the latest version of redis
 brew install redis
 ```
 
+#### Scala
+
+Should be using Scala version 2.10
+
 #### Apache Spark
 
 Download **pre-built Apache Spark 1.6.1 for Hadoop 2.6 and later** and decompress it (<http://spark.apache.org/downloads.html>).
