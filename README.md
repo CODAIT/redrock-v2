@@ -42,9 +42,9 @@ Install the latest version of redis
 brew install redis
 ```
 
-#### Scala
+#### Scala & Java
 
-Should be using Scala version 2.10
+Should be using Scala version 2.10 and Java 8.
 
 #### Apache Spark
 
