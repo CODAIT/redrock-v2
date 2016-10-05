@@ -10,6 +10,12 @@ In this guide it is assumed you are using a mac, but it can easily translate to 
 
 ## Running RedRock v2
 
+RedRock v2 has two major components:
+- Backend: <https://github.com/SparkTC/redrock-v2>
+- Frontend: <https://github.com/SparkTC/redrock-v2-ios>
+
+Follow the steps below to setup the backend and then head on over to the frontend repo for instructions to setup the frontend.
+
 ### Download RedRock v2 code
 
 Clone the RedRock v2 Backend code at: <https://github.com/SparkTC/redrock-v2>
